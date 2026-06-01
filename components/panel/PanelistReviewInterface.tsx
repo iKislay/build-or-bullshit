@@ -181,10 +181,12 @@ export default function PanelistReviewInterface() {
     : '';
 
   const hasVoted = (category: 'firstImpression' | 'design' | 'clarity' | 'value' | 'potential' | 'stageGuess' | 'struggleGuess') => {
-    return (room.votes[category] as any).has
-      ? (room.votes[category] as Map<string, any>).has(panelistId)
-      : Array.isArray(room.votes[category])
-        ? (room.votes[category] as [string, any][]).some(([id]) => id === panelistId)
+    const voteData = room.votes[category];
+    if (!voteData) return false;
+    return (voteData as any).has
+      ? (voteData as Map<string, any>).has(panelistId)
+      : Array.isArray(voteData)
+        ? (voteData as [string, any][]).some(([id]) => id === panelistId)
         : false;
   };
 
