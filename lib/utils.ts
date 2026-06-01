@@ -33,7 +33,8 @@ export function calculateTier(finalScore: number): 'S' | 'A' | 'B' | 'C' | 'D' |
   return 'F';
 }
 
-export function normalizeStage(stage: string): string {
+export function normalizeStage(stage: string | undefined | null): string {
+  if (!stage) return '';
   return stage.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 

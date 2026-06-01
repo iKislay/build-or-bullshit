@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import Scoreboard from '@/components/shared/Scoreboard';
 import AnimatedScoreReveal from '@/components/shared/AnimatedScoreReveal';
 import VotingProgress from '@/components/shared/VotingProgress';
-import { normalizeStage } from '@/lib/utils';
+import { cn, normalizeStage } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
 const STAGE_OPTIONS = ['MVP', 'Launched', 'Revenue', 'Growing'];
@@ -86,16 +86,19 @@ function GuessRound({
             return (
               <div
                 key={option}
-                className={`
-                  relative border-4 border-black px-5 py-4
-                  ${isCorrect ? 'bg-[#4CAF50] correct-pulse' : 'bg-[#FFEB3B]'}
-                  ${isMyChoice && !isCorrect && revealed ? 'opacity-60' : ''}
-                `}
+                className={cn(
+                  "relative border-4 border-black px-5 py-4 transition-all duration-[2000ms] ease-in-out",
+                  isCorrect ? 'bg-[#4CAF50]' : 'bg-[#FFEB3B]',
+                  isMyChoice && !isCorrect && revealed ? 'opacity-60' : ''
+                )}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className={`font-black text-base ${isCorrect ? 'text-white' : 'text-black'}`}>
+                  <span className={cn(
+                    "font-black text-base transition-colors duration-[2000ms]",
+                    isCorrect ? 'text-white' : 'text-black'
+                  )}>
                     {option}
-                    {isCorrect && <span className="ml-2">✓</span>}
+                    {isCorrect && <span className="ml-2 animate-in fade-in duration-[2000ms]">✓</span>}
                   </span>
                   {isMyChoice && (
                     <span className="text-xs font-black bg-black text-white px-2 py-1 shrink-0">
@@ -110,8 +113,10 @@ function GuessRound({
                     {votersForOption.map((p) => (
                       <span
                         key={p.panelistId}
-                        className={`text-xs font-bold px-2 py-0.5 border-2 border-black
-                          ${isCorrect ? 'bg-white text-[#4CAF50]' : 'bg-black text-[#FFEB3B]'}`}
+                        className={cn(
+                          "text-xs font-bold px-2 py-0.5 border-2 border-black transition-colors duration-[2000ms]",
+                          isCorrect ? 'bg-white text-[#4CAF50]' : 'bg-black text-[#FFEB3B]'
+                        )}
                       >
                         {p.name}
                       </span>
@@ -119,11 +124,12 @@ function GuessRound({
                   </div>
                 )}
 
-                {isCorrect && (
-                  <div className="mt-1">
-                    <span className="text-xs font-black text-white/80">{pointsLabel}</span>
-                  </div>
-                )}
+                <div className={cn(
+                  "mt-1 overflow-hidden transition-all duration-[2000ms]",
+                  isCorrect ? "max-h-10 opacity-100" : "max-h-0 opacity-0"
+                )}>
+                  <span className="text-xs font-black text-white/80">{pointsLabel}</span>
+                </div>
               </div>
             );
           })}
