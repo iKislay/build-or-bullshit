@@ -8,11 +8,25 @@ import Scoreboard from '@/components/shared/Scoreboard';
 import AnimatedScoreReveal from '@/components/shared/AnimatedScoreReveal';
 import VotingProgress from '@/components/shared/VotingProgress';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 export default function ReviewInterface() {
   const room = useRoomStore((state) => state.room);
   const setRoom = useRoomStore((state) => state.setRoom);
   const router = useRouter();
+  const [popupData, setPopupData] = useState<{ show: boolean; text: string }>({ show: false, text: '' });
+
+  useEffect(() => {
+    if (room?.currentStage === 'first-impression') {
+      setPopupData({ show: true, text: 'First Impression Round' });
+      const timer = setTimeout(() => setPopupData({ show: false, text: '' }), 3000);
+      return () => clearTimeout(timer);
+    } else if (room?.currentStage === 'product-review') {
+      setPopupData({ show: true, text: 'Does this project have potential?' });
+      const timer = setTimeout(() => setPopupData({ show: false, text: '' }), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [room?.currentStage]);
 
   if (!room || room.currentProjectIndex < 0 || room.currentProjectIndex >= room.projects.length) {
     return (
@@ -62,6 +76,15 @@ export default function ReviewInterface() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {popupData.show && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-md bg-black/40">
+          <div className="bg-[#FFEB3B] border-8 border-black p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] transform -rotate-3 animate-bounce">
+            <h2 className="text-7xl font-black uppercase text-black text-center tracking-tighter">
+              {popupData.text}
+            </h2>
+          </div>
+        </div>
+      )}
       <div className="neo-card bg-white text-center relative">
         <Button
           onClick={handleExitRoom}

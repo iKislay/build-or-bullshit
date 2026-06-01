@@ -415,6 +415,7 @@ export function initializeSocketServer(httpServer: HTTPServer) {
         room.currentProjectIndex++;
         room.currentStage = 'guess';
         room.stageGuessPointsAwarded = false;
+        room.forceReveal = false;
         await room.save();
 
         io.to(roomCode).emit('room-state', await serializeRoomWithVotes(room));
@@ -447,6 +448,95 @@ export function initializeSocketServer(httpServer: HTTPServer) {
       } catch (error) {
         console.error('Reset room error:', error);
         socket.emit('error', { message: 'Failed to reset room' });
+      }
+    });
+
+    socket.on('kick-panelist', async ({ roomCode, panelistId }) => {
+      try {
+        const room = await Room.findOne({ code: roomCode, isActive: true });
+        if (!room || room.hostSocketId !== socket.id) {
+          socket.emit('error', { message: 'Unauthorized or room not found' });
+          return;
+        }
+
+        const kicked = room.panelists.find((p) => p.panelistId === panelistId);
+        if (!kicked) return;
+
+        room.panelists = room.panelists.filter((p) => p.panelistId !== panelistId) as typeof room.panelists;
+
+        await Vote.deleteMany({ roomId: room._id.toString(), panelistId });
+
+        // Recalculate averages for every already-reviewed project excluding kicked panelist
+        for (let i = 0; i < room.reviewedProjects.length; i++) {
+          const reviewed = room.reviewedProjects[i];
+          const votes = await Vote.find({
+            roomId: room._id.toString(),
+            projectId: reviewed.project.id,
+          });
+
+          const votesByCategory: any = { firstImpression: [], design: [], clarity: [], value: [], potential: [] };
+          const stageGuesses: Record<string, string> = {};
+
+          votes.forEach((vote) => {
+            if (vote.category === 'stageGuess') {
+              stageGuesses[vote.panelistId] = vote.value as string;
+            } else if (votesByCategory[vote.category]) {
+              votesByCategory[vote.category].push(vote.value as number);
+            }
+          });
+
+          const averages = {
+            firstImpression: calculateAverage(votesByCategory.firstImpression),
+            design: calculateAverage(votesByCategory.design),
+            clarity: calculateAverage(votesByCategory.clarity),
+            value: calculateAverage(votesByCategory.value),
+            potential: calculateAverage(votesByCategory.potential),
+            final: 0,
+          };
+          averages.final = calculateFinalScore(averages);
+
+          room.reviewedProjects[i] = {
+            ...reviewed,
+            votes: votesByCategory,
+            averages,
+            tier: calculateTier(averages.final),
+            stageGuesses,
+            correctGuesses: Object.entries(stageGuesses)
+              .filter(([, guess]) => guess === reviewed.project.stage)
+              .map(([pid]) => pid),
+          };
+        }
+
+        room.markModified('reviewedProjects');
+        await room.save();
+
+        // Notify kicked panelist's socket if still connected
+        if (kicked.socketId) {
+          io.to(kicked.socketId).emit('kicked', { message: 'You have been removed from the room.' });
+        }
+
+        io.to(roomCode).emit('room-state', await serializeRoomWithVotes(room));
+        console.log(`Panelist ${panelistId} kicked from room ${roomCode}`);
+      } catch (error) {
+        console.error('Kick panelist error:', error);
+        socket.emit('error', { message: 'Failed to kick panelist' });
+      }
+    });
+
+    socket.on('force-reveal', async ({ roomCode }) => {
+      try {
+        const room = await Room.findOne({ code: roomCode, isActive: true });
+        if (!room || room.hostSocketId !== socket.id) {
+          socket.emit('error', { message: 'Unauthorized or room not found' });
+          return;
+        }
+        room.forceReveal = true;
+        await room.save();
+        io.to(roomCode).emit('room-state', await serializeRoomWithVotes(room));
+        console.log(`Force reveal triggered in room ${roomCode}`);
+      } catch (error) {
+        console.error('Force reveal error:', error);
+        socket.emit('error', { message: 'Failed to force reveal' });
       }
     });
 
@@ -489,6 +579,7 @@ function serializeRoom(room: any) {
     currentProjectIndex: room.currentProjectIndex,
     currentStage: room.currentStage,
     reviewedProjects: room.reviewedProjects,
+    forceReveal: room.forceReveal || false,
   };
 }
 
@@ -536,9 +627,9 @@ async function serializeRoomWithVotes(room: any) {
 
     Object.keys(votesByCategory).forEach((category) => {
       votes[category] = Array.from(votesByCategory[category].entries());
-      revealed[category] =
-        room.panelists.length > 0 &&
-        votesByCategory[category].size === room.panelists.length;
+      revealed[category] = room.forceReveal
+        ? votesByCategory[category].size > 0
+        : room.panelists.length > 0 && votesByCategory[category].size === room.panelists.length;
     });
 
     // Auto-award stage guess points when all panelists have voted

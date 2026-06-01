@@ -91,6 +91,7 @@ export interface Room {
     stageGuess: boolean;
   };
   reviewedProjects: ReviewedProject[];
+  forceReveal?: boolean;
 }
 
 export interface Session {

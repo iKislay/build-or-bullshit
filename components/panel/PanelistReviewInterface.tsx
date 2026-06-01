@@ -116,9 +116,6 @@ export default function PanelistReviewInterface() {
 
           {!hasVoted('firstImpression') ? (
             <div className="space-y-4">
-              <Label className="text-2xl font-black uppercase mb-4 block text-center">
-                Select Score (1-10)
-              </Label>
               <div className="grid grid-cols-5 gap-3">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                   <Button
