@@ -7,6 +7,7 @@ import ProjectDisplay from '@/components/shared/ProjectDisplay';
 import Scoreboard from '@/components/shared/Scoreboard';
 import AnimatedScoreReveal from '@/components/shared/AnimatedScoreReveal';
 import VotingProgress from '@/components/shared/VotingProgress';
+import ProjectTimer from '@/components/shared/ProjectTimer';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
@@ -323,6 +324,7 @@ export default function ReviewInterface() {
           </div>
         </div>
       </div>
+      <ProjectTimer />
       <a
         href={`/tierboard?room=${room.code}`}
         target="_blank"

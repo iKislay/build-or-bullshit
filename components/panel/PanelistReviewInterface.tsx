@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import Scoreboard from '@/components/shared/Scoreboard';
 import AnimatedScoreReveal from '@/components/shared/AnimatedScoreReveal';
 import VotingProgress from '@/components/shared/VotingProgress';
+import ProjectTimer from '@/components/shared/ProjectTimer';
 import { cn, normalizeStage } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
@@ -507,6 +508,7 @@ export default function PanelistReviewInterface() {
       )}
 
       <Scoreboard compact />
+      <ProjectTimer />
       <a
         href={`/tierboard?room=${room.code}`}
         target="_blank"
