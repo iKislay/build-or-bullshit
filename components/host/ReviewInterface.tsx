@@ -74,6 +74,24 @@ export default function ReviewInterface() {
     }
   };
 
+  const handleKickPanelist = (panelistId: string) => {
+    const name = room.panelists.find((p) => p.panelistId === panelistId)?.name ?? 'this panelist';
+    if (confirm(`Kick ${name}? Their votes will be deleted and past averages recalculated.`)) {
+      socket.emit('kick-panelist', { roomCode: room.code, panelistId });
+    }
+  };
+
+  const handleForceReveal = () => {
+    if (confirm('Force-reveal votes? All votes submitted so far will be shown and you can proceed.')) {
+      socket.emit('force-reveal', { roomCode: room.code });
+    }
+  };
+
+  const isVotingStage = ['first-impression', 'landing-review', 'product-review', 'stage-guess'].includes(room.currentStage);
+  const allRevealed = room.revealed.firstImpression && room.revealed.design && room.revealed.clarity &&
+    room.revealed.value && room.revealed.potential && room.revealed.stageGuess;
+  const showForceReveal = isVotingStage && !allRevealed && !room.forceReveal;
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {popupData.show && (
@@ -155,10 +173,10 @@ export default function ReviewInterface() {
                 <>
                   {!room.revealed.firstImpression && (
                     <div className="border-4 border-black bg-white p-4">
-                      <VotingProgress 
-                        panelists={room.panelists} 
-                        votedIds={room.votes.firstImpression} 
-                        label="Waiting for First Impression votes..." 
+                      <VotingProgress
+                        panelists={room.panelists}
+                        votedIds={room.votes.firstImpression}
+                        label="Waiting for First Impression votes..."
                       />
                     </div>
                   )}
@@ -212,10 +230,10 @@ export default function ReviewInterface() {
                 <>
                   {!room.revealed.potential && (
                     <div className="border-4 border-black bg-white p-4">
-                      <VotingProgress 
-                        panelists={room.panelists} 
-                        votedIds={room.votes.potential} 
-                        label="Waiting for Potential votes..." 
+                      <VotingProgress
+                        panelists={room.panelists}
+                        votedIds={room.votes.potential}
+                        label="Waiting for Potential votes..."
                       />
                     </div>
                   )}
@@ -237,21 +255,21 @@ export default function ReviewInterface() {
                 <>
                   {!room.revealed.stageGuess && (
                     <div className="border-4 border-black bg-white p-4">
-                      <VotingProgress 
-                        panelists={room.panelists} 
-                        votedIds={room.votes.stageGuess} 
-                        label="Waiting for stage guesses..." 
+                      <VotingProgress
+                        panelists={room.panelists}
+                        votedIds={room.votes.stageGuess}
+                        label="Waiting for stage guesses..."
                       />
                     </div>
                   )}
                   {room.revealed.stageGuess && (
                     <>
-                      <AnimatedScoreReveal 
-                        votes={room.votes.stageGuess} 
-                        panelists={room.panelists} 
-                        title="Stage Guess Results" 
-                        isStageGuess={true} 
-                        correctStage={currentProject.stage} 
+                      <AnimatedScoreReveal
+                        votes={room.votes.stageGuess}
+                        panelists={room.panelists}
+                        title="Stage Guess Results"
+                        isStageGuess={true}
+                        correctStage={currentProject.stage}
                       />
                       <Button
                         onClick={handleNextProject}
@@ -263,12 +281,21 @@ export default function ReviewInterface() {
                   )}
                 </>
               )}
+
+              {showForceReveal && (
+                <Button
+                  onClick={handleForceReveal}
+                  className="neo-button bg-[#FF9800] hover:bg-[#FF9800] w-full mt-2"
+                >
+                  Force Reveal (skip missing votes)
+                </Button>
+              )}
             </div>
           </div>
         </div>
 
         <div className="space-y-6">
-          <Scoreboard />
+          <Scoreboard onKick={handleKickPanelist} />
 
           <div className="neo-card bg-[#F44336]">
             <Button

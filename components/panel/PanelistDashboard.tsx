@@ -62,12 +62,20 @@ export default function PanelistDashboard() {
       alert(message);
     });
 
+    socket.on('kicked', ({ message }: { message: string }) => {
+      alert(message);
+      setRoom(null);
+      sessionStorage.removeItem('session');
+      router.push('/');
+    });
+
     return () => {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('room-joined');
       socket.off('room-state');
       socket.off('error');
+      socket.off('kicked');
     };
   }, [router, setRoom]);
 

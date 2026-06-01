@@ -4,7 +4,7 @@ import { useRoomStore } from '@/lib/store';
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useRef, useState } from 'react';
 
-export default function Scoreboard({ compact = false }: { compact?: boolean }) {
+export default function Scoreboard({ compact = false, onKick }: { compact?: boolean; onKick?: (panelistId: string) => void }) {
   const room = useRoomStore((state) => state.room);
   const [highlightedPanelists, setHighlightedPanelists] = useState<Record<string, boolean>>({});
   const prevScoresRef = useRef<Record<string, number>>({});
@@ -104,7 +104,18 @@ export default function Scoreboard({ compact = false }: { compact?: boolean }) {
                 )}
               </div>
             </div>
-            <span className="text-3xl font-black">{panelist.score} pts</span>
+            <div className="flex items-center gap-3">
+              <span className="text-3xl font-black">{panelist.score} pts</span>
+              {onKick && (
+                <button
+                  onClick={() => onKick(panelist.panelistId)}
+                  className="border-2 border-black bg-[#F44336] text-white font-black text-xs px-2 py-1 hover:bg-red-700 transition-colors"
+                  title={`Kick ${panelist.name}`}
+                >
+                  KICK
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
