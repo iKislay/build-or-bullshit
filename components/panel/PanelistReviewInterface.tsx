@@ -200,11 +200,15 @@ export default function PanelistReviewInterface() {
   // Normalize votes arrays for stage/struggle guess
   const stageVotesArr: [string, string][] = Array.isArray(room.votes.stageGuess)
     ? (room.votes.stageGuess as [string, string][])
-    : Array.from((room.votes.stageGuess as Map<string, string>).entries());
+    : room.votes.stageGuess
+    ? Array.from((room.votes.stageGuess as Map<string, string>).entries())
+    : [];
 
   const struggleVotesArr: [string, string][] = Array.isArray((room.votes as any).struggleGuess)
     ? ((room.votes as any).struggleGuess as [string, string][])
-    : Array.from(((room.votes as any).struggleGuess as Map<string, string>).entries());
+    : (room.votes as any).struggleGuess
+    ? Array.from(((room.votes as any).struggleGuess as Map<string, string>).entries())
+    : [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
