@@ -4,19 +4,150 @@ import { useState } from 'react';
 import { useRoomStore } from '@/lib/store';
 import { getSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import Scoreboard from '@/components/shared/Scoreboard';
 import AnimatedScoreReveal from '@/components/shared/AnimatedScoreReveal';
 import VotingProgress from '@/components/shared/VotingProgress';
 import { normalizeStage } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
+const STAGE_OPTIONS = ['MVP', 'Launched', 'Revenue', 'Growing'];
+
+const STRUGGLE_OPTIONS = [
+  '100 users, 0% retention',
+  '0 users, 100% confidence',
+  'Traffic comes, money doesn\'t',
+  'Nobody understands the value',
+  'Finding product-market fit 🔍',
+  'Everything. Please send help 🚨',
+];
+
+interface GuessRoundProps {
+  title: string;
+  subtitle: string;
+  options: string[];
+  category: 'stageGuess' | 'struggleGuess';
+  correctValue: string;
+  votes: [string, string][];
+  revealed: boolean;
+  panelists: { panelistId: string; name: string }[];
+  hasVoted: boolean;
+  onVote: (value: string) => void;
+  myGuess: string;
+  pointsLabel: string;
+}
+
+function GuessRound({
+  title,
+  subtitle,
+  options,
+  correctValue,
+  votes,
+  revealed,
+  panelists,
+  hasVoted,
+  onVote,
+  myGuess,
+  pointsLabel,
+}: GuessRoundProps) {
+  return (
+    <div className="neo-card bg-[#FF9800]">
+      <h3 className="text-3xl font-black uppercase mb-1 text-center">{title}</h3>
+      <p className="text-center font-bold text-black/70 mb-5">{subtitle}</p>
+
+      {!hasVoted ? (
+        /* ── VOTING PHASE ── */
+        <div className="space-y-3">
+          {options.map((option) => (
+            <button
+              key={option}
+              onClick={() => onVote(option)}
+              className="w-full text-left px-5 py-4 bg-[#FFEB3B] border-4 border-black font-black text-base
+                         shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+                         hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5
+                         active:shadow-none active:translate-y-0
+                         transition-all duration-100"
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ) : (
+        /* ── VOTED / RESULTS PHASE ── */
+        <div className="space-y-3">
+          {options.map((option) => {
+            const votersForOption = panelists.filter((p) => {
+              const entry = votes.find(([id]) => id === p.panelistId);
+              return entry?.[1] === option;
+            });
+
+            const isCorrect = revealed && normalizeStage(option) === normalizeStage(correctValue);
+            const isMyChoice = option === myGuess;
+
+            return (
+              <div
+                key={option}
+                className={`
+                  relative border-4 border-black px-5 py-4
+                  ${isCorrect ? 'bg-[#4CAF50] correct-pulse' : 'bg-[#FFEB3B]'}
+                  ${isMyChoice && !isCorrect && revealed ? 'opacity-60' : ''}
+                `}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className={`font-black text-base ${isCorrect ? 'text-white' : 'text-black'}`}>
+                    {option}
+                    {isCorrect && <span className="ml-2">✓</span>}
+                  </span>
+                  {isMyChoice && (
+                    <span className="text-xs font-black bg-black text-white px-2 py-1 shrink-0">
+                      YOU
+                    </span>
+                  )}
+                </div>
+
+                {/* Panelist names inside the option */}
+                {votersForOption.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {votersForOption.map((p) => (
+                      <span
+                        key={p.panelistId}
+                        className={`text-xs font-bold px-2 py-0.5 border-2 border-black
+                          ${isCorrect ? 'bg-white text-[#4CAF50]' : 'bg-black text-[#FFEB3B]'}`}
+                      >
+                        {p.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {isCorrect && (
+                  <div className="mt-1">
+                    <span className="text-xs font-black text-white/80">{pointsLabel}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Waiting indicator */}
+          {!revealed && (
+            <VotingProgress
+              panelists={panelists as any}
+              votedIds={votes as any}
+              label="Waiting for everyone to vote..."
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PanelistReviewInterface() {
   const room = useRoomStore((state) => state.room);
   const setRoom = useRoomStore((state) => state.setRoom);
   const router = useRouter();
   const [stageGuess, setStageGuess] = useState('');
+  const [struggleGuess, setStruggleGuess] = useState('');
 
   if (!room || room.currentProjectIndex < 0 || room.currentProjectIndex >= room.projects.length) {
     return (
@@ -36,29 +167,27 @@ export default function PanelistReviewInterface() {
     ? JSON.parse(sessionStorage.getItem('session') || '{}').panelistId
     : '';
 
-  const hasVoted = (category: 'firstImpression' | 'design' | 'clarity' | 'value' | 'potential' | 'stageGuess') => {
-    return room.votes[category].has(panelistId);
+  const hasVoted = (category: 'firstImpression' | 'design' | 'clarity' | 'value' | 'potential' | 'stageGuess' | 'struggleGuess') => {
+    return (room.votes[category] as any).has
+      ? (room.votes[category] as Map<string, any>).has(panelistId)
+      : Array.isArray(room.votes[category])
+        ? (room.votes[category] as [string, any][]).some(([id]) => id === panelistId)
+        : false;
   };
 
   const handleSubmitVote = (category: string, value: number | string) => {
     socket.emit('submit-vote', { roomCode: room.code, category, value });
   };
 
-
-
   const handleStageGuessSubmit = (guess: string) => {
     handleSubmitVote('stageGuess', guess);
     setStageGuess(guess);
   };
 
-  const stageOptions = [
-    '0 users, 100% confidence',
-    '100 users, 0% retention',
-    'Traffic comes, money doesn\'t',
-    'Finding product-market fit 🔍',
-    'Nobody understands the value',
-    'Everything. Please send help 🚨',
-  ];
+  const handleStruggleGuessSubmit = (guess: string) => {
+    handleSubmitVote('struggleGuess', guess);
+    setStruggleGuess(guess);
+  };
 
   const handleExitRoom = () => {
     if (confirm('Are you sure you want to exit the room?')) {
@@ -68,8 +197,27 @@ export default function PanelistReviewInterface() {
     }
   };
 
+  // Normalize votes arrays for stage/struggle guess
+  const stageVotesArr: [string, string][] = Array.isArray(room.votes.stageGuess)
+    ? (room.votes.stageGuess as [string, string][])
+    : Array.from((room.votes.stageGuess as Map<string, string>).entries());
+
+  const struggleVotesArr: [string, string][] = Array.isArray((room.votes as any).struggleGuess)
+    ? ((room.votes as any).struggleGuess as [string, string][])
+    : Array.from(((room.votes as any).struggleGuess as Map<string, string>).entries());
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <style>{`
+        @keyframes correctPulse {
+          0%, 100% { background-color: #4CAF50; }
+          50% { background-color: #81C784; }
+        }
+        .correct-pulse {
+          animation: correctPulse 0.8s ease-in-out infinite;
+        }
+      `}</style>
+
       <div className="neo-card bg-white text-center relative">
         <Button
           onClick={handleExitRoom}
@@ -273,74 +421,37 @@ export default function PanelistReviewInterface() {
       )}
 
       {room.currentStage === 'stage-guess' && (
-        <div className="neo-card bg-[#FF9800]">
-          <h3 className="text-3xl font-black uppercase mb-4 text-center">
-            Guess the Product Stage
-          </h3>
-          {!hasVoted('stageGuess') ? (
-            <div className="space-y-3">
-              {stageOptions.map((option) => (
-                <Button
-                  key={option}
-                  onClick={() => handleStageGuessSubmit(option)}
-                  className="neo-button bg-[#FFEB3B] hover:bg-[#FFEB3B] w-full text-left justify-start text-base h-auto py-4"
-                >
-                  {option}
-                </Button>
-              ))}
-            </div>
-          ) : (() => {
-            const revealed = room.revealed.stageGuess;
-            const correctStageRaw = currentProject.stage;
-            const correctStage = stageOptions.find(opt => normalizeStage(opt) === normalizeStage(correctStageRaw)) || correctStageRaw;
-            const votesArr: [string, string][] = Array.isArray(room.votes.stageGuess)
-              ? (room.votes.stageGuess as [string, string][])
-              : Array.from((room.votes.stageGuess as Map<string, string>).entries());
+        <GuessRound
+          title="Guess the Product Stage"
+          subtitle="Where is this product right now?"
+          options={STAGE_OPTIONS}
+          category="stageGuess"
+          correctValue={currentProject.stage}
+          votes={stageVotesArr}
+          revealed={room.revealed.stageGuess}
+          panelists={room.panelists}
+          hasVoted={hasVoted('stageGuess')}
+          onVote={handleStageGuessSubmit}
+          myGuess={stageGuess}
+          pointsLabel="✓ +10 pts for correct guessers"
+        />
+      )}
 
-            return (
-              <div className="space-y-3">
-                {!revealed ? (
-                  <>
-                    <div className="border-4 border-black bg-white p-3 text-center">
-                      <p className="text-sm font-black uppercase opacity-60 mb-1">Your Guess</p>
-                      <p className="text-lg font-black">{stageGuess}</p>
-                    </div>
-                    <VotingProgress panelists={room.panelists} votedIds={room.votes.stageGuess} label="Waiting for others..." />
-                  </>
-                ) : (
-                  <>
-                    {/* Correct answer pinned at top */}
-                    <div className="border-4 border-black bg-[#4CAF50] p-4 text-center">
-                      <p className="text-xs font-black uppercase text-white opacity-80 mb-1">✓ Correct Answer</p>
-                      <p className="text-2xl font-black text-white">{correctStage}</p>
-                    </div>
-
-                    {/* All panelists' guesses */}
-                    <div className="space-y-2">
-                      {room.panelists.map((panelist) => {
-                        const entry = votesArr.find(([id]) => id === panelist.panelistId);
-                        const guess = entry?.[1];
-                        const correct = guess && normalizeStage(guess) === normalizeStage(correctStageRaw);
-                        return (
-                          <div
-                            key={panelist.panelistId}
-                            className={`border-4 border-black p-3 flex items-center justify-between ${correct ? 'bg-[#4CAF50]' : 'bg-[#F44336]'}`}
-                          >
-                            <span className="font-black text-white text-base">{panelist.name}</span>
-                            <div className="text-right">
-                              <span className="font-bold text-white text-sm block">{guess || '—'}</span>
-                              <span className="text-white font-black">{correct ? '✓ +5 pts' : ''}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })()}
-        </div>
+      {room.currentStage === 'struggle-guess' && (
+        <GuessRound
+          title="Guess the Founder's Struggle"
+          subtitle="What is this founder struggling with?"
+          options={STRUGGLE_OPTIONS}
+          category="struggleGuess"
+          correctValue={currentProject.struggling}
+          votes={struggleVotesArr}
+          revealed={(room.revealed as any).struggleGuess}
+          panelists={room.panelists}
+          hasVoted={hasVoted('struggleGuess')}
+          onVote={handleStruggleGuessSubmit}
+          myGuess={struggleGuess}
+          pointsLabel="✓ +15 pts for correct guessers"
+        />
       )}
 
       <Scoreboard compact />

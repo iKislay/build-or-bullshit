@@ -16,6 +16,7 @@ export interface IRoom extends Document {
   reviewedProjects: Array<any>;
   isActive: boolean;
   stageGuessPointsAwarded: boolean;
+  struggleGuessPointsAwarded: boolean;
   forceReveal: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -37,6 +38,7 @@ const RoomSchema = new Schema<IRoom>({
   reviewedProjects: [{ type: Schema.Types.Mixed }],
   isActive: { type: Boolean, default: true },
   stageGuessPointsAwarded: { type: Boolean, default: false },
+  struggleGuessPointsAwarded: { type: Boolean, default: false },
   forceReveal: { type: Boolean, default: false },
 }, {
   timestamps: true

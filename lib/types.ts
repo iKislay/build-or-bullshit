@@ -8,6 +8,7 @@ export type Stage =
   | 'landing-review'
   | 'product-review'
   | 'stage-guess'
+  | 'struggle-guess'
   | 'completed';
 
 export type Tier = 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
@@ -81,6 +82,7 @@ export interface Room {
     value: Map<string, number>;
     potential: Map<string, number>;
     stageGuess: Map<string, string>;
+    struggleGuess: Map<string, string>;
   };
   revealed: {
     firstImpression: boolean;
@@ -89,6 +91,7 @@ export interface Room {
     value: boolean;
     potential: boolean;
     stageGuess: boolean;
+    struggleGuess: boolean;
   };
   reviewedProjects: ReviewedProject[];
   forceReveal?: boolean;

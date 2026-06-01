@@ -152,6 +152,28 @@ export default function AdminDashboard() {
           </p>
         </div>
 
+        {/* Stage Flow Reference */}
+        <div className="neo-card bg-[#E91E63]">
+          <h2 className="text-2xl font-black uppercase mb-4 text-white">📋 Game Stage Flow</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            {[
+              { stage: '1. Guess', desc: 'Panelists see URL only', color: 'bg-[#9C27B0]' },
+              { stage: '2. Reveal', desc: 'Show description + award points', color: 'bg-[#00BCD4]' },
+              { stage: '3. First Impression', desc: 'Score 1–10', color: 'bg-[#00BCD4]' },
+              { stage: '4. Landing Review', desc: 'Design / Clarity / Value scores', color: 'bg-[#FFEB3B]' },
+              { stage: '5. Product Review', desc: 'Potential score', color: 'bg-[#E91E63]' },
+              { stage: '6. Guess the Stage', desc: 'MVP / Launched / Revenue / Growing — 10 pts', color: 'bg-[#FF9800]' },
+              { stage: "7. Guess the Struggle", desc: "Founder's pain point — 15 pts", color: 'bg-[#FF5722]' },
+              { stage: '8. Next Project', desc: 'Tier board opens, move on', color: 'bg-[#4CAF50]' },
+            ].map(({ stage, desc, color }) => (
+              <div key={stage} className={`border-4 border-black ${color} p-3`}>
+                <p className="font-black text-sm text-black">{stage}</p>
+                <p className="text-xs font-bold text-black/70 mt-1">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="neo-card bg-[#FFEB3B]">
           <div className="flex gap-4 mb-6">
             <Button

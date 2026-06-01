@@ -230,6 +230,7 @@ export function initializeSocketServer(httpServer: HTTPServer) {
           'landing-review',
           'product-review',
           'stage-guess',
+          'struggle-guess',
           'completed',
         ];
 
@@ -415,6 +416,7 @@ export function initializeSocketServer(httpServer: HTTPServer) {
         room.currentProjectIndex++;
         room.currentStage = 'guess';
         room.stageGuessPointsAwarded = false;
+        room.struggleGuessPointsAwarded = false;
         room.forceReveal = false;
         await room.save();
 
@@ -593,6 +595,7 @@ async function serializeRoomWithVotes(room: any) {
     value: [],
     potential: [],
     stageGuess: [],
+    struggleGuess: [],
   };
 
   let revealed: Record<string, boolean> = {
@@ -602,6 +605,7 @@ async function serializeRoomWithVotes(room: any) {
     value: false,
     potential: false,
     stageGuess: false,
+    struggleGuess: false,
   };
 
   if (currentProject) {
@@ -617,6 +621,7 @@ async function serializeRoomWithVotes(room: any) {
       value: new Map(),
       potential: new Map(),
       stageGuess: new Map(),
+      struggleGuess: new Map(),
     };
 
     voteRecords.forEach((vote) => {
@@ -632,7 +637,7 @@ async function serializeRoomWithVotes(room: any) {
         : room.panelists.length > 0 && votesByCategory[category].size === room.panelists.length;
     });
 
-    // Auto-award stage guess points when all panelists have voted
+    // Auto-award stage-guess points (10 pts) when all panelists have voted
     if (
       room.currentStage === 'stage-guess' &&
       revealed['stageGuess'] &&
@@ -643,11 +648,30 @@ async function serializeRoomWithVotes(room: any) {
         if (guess && normalizeStage(guess) === normalizeStage(currentProject.stage)) {
           const panelist = room.panelists.find((p: any) => p.panelistId === panelistId);
           if (panelist) {
-            panelist.score += 5;
+            panelist.score += 10;
           }
         }
       });
       room.stageGuessPointsAwarded = true;
+      await room.save();
+    }
+
+    // Auto-award struggle-guess points (15 pts) when all panelists have voted
+    if (
+      room.currentStage === 'struggle-guess' &&
+      revealed['struggleGuess'] &&
+      !room.struggleGuessPointsAwarded
+    ) {
+      const struggleGuessVotes = votesByCategory['struggleGuess'];
+      struggleGuessVotes.forEach((guess: string, panelistId: string) => {
+        if (guess && normalizeStage(guess) === normalizeStage(currentProject.struggling)) {
+          const panelist = room.panelists.find((p: any) => p.panelistId === panelistId);
+          if (panelist) {
+            panelist.score += 15;
+          }
+        }
+      });
+      room.struggleGuessPointsAwarded = true;
       await room.save();
     }
   }

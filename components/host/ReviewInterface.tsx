@@ -87,9 +87,9 @@ export default function ReviewInterface() {
     }
   };
 
-  const isVotingStage = ['first-impression', 'landing-review', 'product-review', 'stage-guess'].includes(room.currentStage);
+  const isVotingStage = ['first-impression', 'landing-review', 'product-review', 'stage-guess', 'struggle-guess'].includes(room.currentStage);
   const allRevealed = room.revealed.firstImpression && room.revealed.design && room.revealed.clarity &&
-    room.revealed.value && room.revealed.potential && room.revealed.stageGuess;
+    room.revealed.value && room.revealed.potential && room.revealed.stageGuess && (room.revealed as any).struggleGuess;
   const showForceReveal = isVotingStage && !allRevealed && !room.forceReveal;
 
   return (
@@ -271,6 +271,34 @@ export default function ReviewInterface() {
                         isStageGuess={true}
                         correctStage={currentProject.stage}
                       />
+                      <Button
+                        onClick={handleNextStage}
+                        className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full mt-4"
+                      >
+                        Continue to Founder&apos;s Struggle
+                      </Button>
+                    </>
+                  )}
+                </>
+              )}
+
+              {room.currentStage === 'struggle-guess' && (
+                <>
+                  {!(room.revealed as any).struggleGuess && (
+                    <div className="border-4 border-black bg-white p-4">
+                      <VotingProgress
+                        panelists={room.panelists}
+                        votedIds={(room.votes as any).struggleGuess}
+                        label="Waiting for struggle guesses..."
+                      />
+                    </div>
+                  )}
+                  {(room.revealed as any).struggleGuess && (
+                    <>
+                      <div className="border-4 border-black bg-[#4CAF50] p-4 text-center">
+                        <p className="text-xs font-black uppercase text-white opacity-80 mb-1">✓ Correct Answer</p>
+                        <p className="text-2xl font-black text-white">{currentProject.struggling}</p>
+                      </div>
                       <Button
                         onClick={handleNextProject}
                         className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full mt-4"

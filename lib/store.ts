@@ -53,6 +53,7 @@ interface VoteStore {
     value: Map<string, number>;
     potential: Map<string, number>;
     stageGuess: Map<string, string>;
+    struggleGuess: Map<string, string>;
   };
   revealed: {
     firstImpression: boolean;
@@ -61,6 +62,7 @@ interface VoteStore {
     value: boolean;
     potential: boolean;
     stageGuess: boolean;
+    struggleGuess: boolean;
   };
   setVotes: (category: string, votes: Map<string, number | string>) => void;
   setRevealed: (category: string, revealed: boolean) => void;
@@ -75,6 +77,7 @@ export const useVoteStore = create<VoteStore>((set) => ({
     value: new Map(),
     potential: new Map(),
     stageGuess: new Map(),
+    struggleGuess: new Map(),
   },
   revealed: {
     firstImpression: false,
@@ -83,6 +86,7 @@ export const useVoteStore = create<VoteStore>((set) => ({
     value: false,
     potential: false,
     stageGuess: false,
+    struggleGuess: false,
   },
   setVotes: (category, votes) =>
     set((state) => ({
@@ -101,6 +105,7 @@ export const useVoteStore = create<VoteStore>((set) => ({
         value: new Map(),
         potential: new Map(),
         stageGuess: new Map(),
+        struggleGuess: new Map(),
       },
       revealed: {
         firstImpression: false,
@@ -109,6 +114,7 @@ export const useVoteStore = create<VoteStore>((set) => ({
         value: false,
         potential: false,
         stageGuess: false,
+        struggleGuess: false,
       },
     }),
 }));
