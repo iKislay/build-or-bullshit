@@ -34,7 +34,7 @@ export default function CSVUploader({ onCSVUploaded }: CSVUploaderProps) {
           const projects: Project[] = results.data.map((row, index) => {
             const keys = Object.keys(row);
             const getVal = (exact: string, keywords: string[]) => {
-              const record = row as Record<string, string>;
+              const record = row as unknown as Record<string, string>;
               if (record[exact]) return record[exact];
               const match = keys.find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
               return match ? record[match] : '';
