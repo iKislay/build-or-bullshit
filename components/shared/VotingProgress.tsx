@@ -15,7 +15,7 @@ export default function VotingProgress({ panelists, votedIds, label = "Waiting f
       <p className="text-xl font-black uppercase mb-4 text-center">{label}</p>
       <div className="flex flex-wrap gap-4 justify-center">
         {panelists.map((p) => {
-          const hasVoted = votedIds.has(p.panelistId);
+          const hasVoted = votedIds?.has(p.panelistId) ?? false;
           return (
             <div
               key={p.panelistId}

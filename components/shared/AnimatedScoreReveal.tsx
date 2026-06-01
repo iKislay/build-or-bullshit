@@ -24,7 +24,7 @@ export default function AnimatedScoreReveal({
   const [showAverage, setShowAverage] = useState(false);
 
   // Use Array.from just once to keep the order consistent
-  const [voteEntries] = useState(() => Array.from(votes.entries()));
+  const [voteEntries] = useState(() => votes ? Array.from(votes.entries()) : []);
   
   useEffect(() => {
     if (voteEntries.length === 0) return;

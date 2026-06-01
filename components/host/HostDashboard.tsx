@@ -211,6 +211,7 @@ function deserializeRoom(roomState: any): Room {
       value: new Map(roomState.votes?.value || []),
       potential: new Map(roomState.votes?.potential || []),
       stageGuess: new Map(roomState.votes?.stageGuess || []),
+      struggleGuess: new Map(roomState.votes?.struggleGuess || []),
     },
     revealed: roomState.revealed || {
       firstImpression: false,
@@ -219,6 +220,7 @@ function deserializeRoom(roomState: any): Room {
       value: false,
       potential: false,
       stageGuess: false,
+      struggleGuess: false,
     },
   };
 }

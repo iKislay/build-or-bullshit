@@ -47,12 +47,12 @@ export default function Scoreboard({ compact = false, onKick }: { compact?: bool
 
   const hasVoted = (panelistId: string) => {
     const { currentStage, votes } = room;
-    if (currentStage === 'first-impression') return votes.firstImpression.has(panelistId);
+    if (currentStage === 'first-impression') return votes.firstImpression?.has(panelistId) ?? false;
     if (currentStage === 'landing-review') {
-      return votes.design.has(panelistId) || votes.clarity.has(panelistId) || votes.value.has(panelistId);
+      return (votes.design?.has(panelistId) || votes.clarity?.has(panelistId) || votes.value?.has(panelistId)) ?? false;
     }
-    if (currentStage === 'product-review') return votes.potential.has(panelistId);
-    if (currentStage === 'stage-guess') return votes.stageGuess.has(panelistId);
+    if (currentStage === 'product-review') return votes.potential?.has(panelistId) ?? false;
+    if (currentStage === 'stage-guess') return votes.stageGuess?.has(panelistId) ?? false;
     return false;
   };
 
