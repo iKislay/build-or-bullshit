@@ -49,6 +49,14 @@ function GuessRound({
   myGuess,
   pointsLabel,
 }: GuessRoundProps) {
+  const displayOptions = [...options];
+  if (revealed && correctValue) {
+    const hasMatch = displayOptions.some(opt => normalizeStage(opt) === normalizeStage(correctValue));
+    if (!hasMatch) {
+      displayOptions.push(correctValue);
+    }
+  }
+
   return (
     <div className="neo-card bg-[#FF9800]">
       <h3 className="text-3xl font-black uppercase mb-1 text-center">{title}</h3>
@@ -74,7 +82,7 @@ function GuessRound({
       ) : (
         /* ── VOTED / RESULTS PHASE ── */
         <div className="space-y-3">
-          {options.map((option) => {
+          {displayOptions.map((option) => {
             const votersForOption = panelists.filter((p) => {
               const entry = votes.find(([id]) => id === p.panelistId);
               return entry?.[1] === option;
@@ -88,9 +96,10 @@ function GuessRound({
                 key={option}
                 className={cn(
                   "relative border-4 border-black px-5 py-4 transition-all duration-[2000ms] ease-in-out",
-                  isCorrect ? 'bg-[#4CAF50]' : 'bg-[#FFEB3B]',
+                  isCorrect ? '' : 'bg-[#FFEB3B]',
                   isMyChoice && !isCorrect && revealed ? 'opacity-60' : ''
                 )}
+                style={{ backgroundColor: isCorrect ? '#4CAF50' : undefined }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <span className={cn(
@@ -117,6 +126,7 @@ function GuessRound({
                           "text-xs font-bold px-2 py-0.5 border-2 border-black transition-colors duration-[2000ms]",
                           isCorrect ? 'bg-white text-[#4CAF50]' : 'bg-black text-[#FFEB3B]'
                         )}
+                        style={isCorrect ? { color: '#4CAF50' } : {}}
                       >
                         {p.name}
                       </span>
@@ -138,7 +148,7 @@ function GuessRound({
           {!revealed && (
             <VotingProgress
               panelists={panelists as any}
-              votedIds={votes as any}
+              votedIds={new Set(votes.map(([id]) => id)) as any}
               label="Waiting for everyone to vote..."
             />
           )}
