@@ -11,7 +11,8 @@ interface ProjectDisplayProps {
 export default function ProjectDisplay({ project, stage, isHost = false }: ProjectDisplayProps) {
   const showURL = stage !== 'guess';
   const showDescription = stage !== 'guess' && stage !== 'reveal';
-  const showFullDetails = stage === 'product-review' || stage === 'stage-guess' || stage === 'completed';
+  const showFullDetails = stage === 'product-review' || stage === 'stage-guess' || stage === 'struggle-guess' || stage === 'completed';
+  const showStruggling = stage === 'struggle-guess' || stage === 'completed';
 
   return (
     <div className="neo-card bg-[#00BCD4]">
@@ -86,7 +87,7 @@ export default function ProjectDisplay({ project, stage, isHost = false }: Proje
               </div>
             )}
 
-            {project.struggling && (
+            {showStruggling && project.struggling && (
               <div className="border-4 border-black bg-[#FF9800] p-6">
                 <p className="text-lg font-black uppercase mb-2">Struggling With:</p>
                 <p className="text-lg font-bold">{project.struggling}</p>

@@ -167,6 +167,11 @@ export default function PanelistReviewInterface() {
   const [popupData, setPopupData] = useState<{ show: boolean; text: string }>({ show: false, text: '' });
 
   useEffect(() => {
+    setStageGuess('');
+    setStruggleGuess('');
+  }, [room?.currentProjectIndex]);
+
+  useEffect(() => {
     if (room?.currentStage === 'first-impression') {
       setPopupData({ show: true, text: 'First Impression Round' });
       const timer = setTimeout(() => setPopupData({ show: false, text: '' }), 4000);
@@ -484,7 +489,7 @@ export default function PanelistReviewInterface() {
           category="struggleGuess"
           correctValue={currentProject.struggling}
           votes={struggleVotesArr}
-          revealed={(room.revealed as any).struggleGuess}
+          revealed={room.revealed.struggleGuess}
           panelists={room.panelists}
           hasVoted={hasVoted('struggleGuess')}
           onVote={handleStruggleGuessSubmit}

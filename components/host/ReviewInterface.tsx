@@ -83,7 +83,7 @@ export default function ReviewInterface() {
 
   const isVotingStage = ['first-impression', 'landing-review', 'product-review', 'stage-guess', 'struggle-guess'].includes(room.currentStage);
   const allRevealed = room.revealed.firstImpression && room.revealed.design && room.revealed.clarity &&
-    room.revealed.value && room.revealed.potential && room.revealed.stageGuess && (room.revealed as any).struggleGuess;
+    room.revealed.value && room.revealed.potential && room.revealed.stageGuess && room.revealed.struggleGuess;
   const showForceReveal = isVotingStage && !allRevealed && !room.forceReveal;
 
   return (
@@ -269,21 +269,24 @@ export default function ReviewInterface() {
 
               {room.currentStage === 'struggle-guess' && (
                 <>
-                  {!(room.revealed as any).struggleGuess && (
+                  {!room.revealed.struggleGuess && (
                     <div className="border-4 border-black bg-white p-4">
                       <VotingProgress
                         panelists={room.panelists}
-                        votedIds={(room.votes as any).struggleGuess}
+                        votedIds={room.votes.struggleGuess}
                         label="Waiting for struggle guesses..."
                       />
                     </div>
                   )}
-                  {(room.revealed as any).struggleGuess && (
+                  {room.revealed.struggleGuess && (
                     <>
-                      <div className="border-4 border-black bg-[#4CAF50] p-4 text-center">
-                        <p className="text-xs font-black uppercase text-white opacity-80 mb-1">✓ Correct Answer</p>
-                        <p className="text-2xl font-black text-white">{currentProject.struggling}</p>
-                      </div>
+                      <AnimatedScoreReveal
+                        votes={room.votes.struggleGuess}
+                        panelists={room.panelists}
+                        title="Struggle Guess Results"
+                        isStageGuess={true}
+                        correctStage={currentProject.struggling}
+                      />
                       <Button
                         onClick={handleNextProject}
                         className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full mt-4"

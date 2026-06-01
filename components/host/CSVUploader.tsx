@@ -42,14 +42,14 @@ export default function CSVUploader({ onCSVUploaded }: CSVUploaderProps) {
 
             return {
               id: `project-${index}`,
-              submissionId: row["Submission ID"] || '',
-              submittedAt: row["Submitted At"] || '',
+              submissionId: getVal("Submission ID", ["submission id", "submission"]),
+              submittedAt: getVal("Submitted At", ["submitted at", "submitted"]),
               url: getVal("Your project link", ["link", "url", "website"]),
               description: getVal("What does your project do? (In short)", ["description", "what does", "about"]),
-              stage: row["At what stage your product is?"] || '',
-              launched: row["Have you launched on forg.to?"] || '',
-              struggling: row["One thing you're struggling with"] || '',
-              credentials: row["Dummy credentials"] || '',
+              stage: getVal("At what stage your product is?", ["what stage", "stage"]),
+              launched: getVal("Have you launched on forg.to?", ["launched", "forg"]),
+              struggling: getVal("One thing you're struggling with", ["struggling", "struggle"]),
+              credentials: getVal("Dummy credentials", ["credentials", "dummy"]),
             };
           });
 
