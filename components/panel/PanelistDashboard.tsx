@@ -33,6 +33,15 @@ export default function PanelistDashboard() {
     socket.on('connect', () => {
       setIsConnected(true);
       console.log('Connected to server');
+
+      // Auto-join room on connect
+      if (parsedSession.roomCode && parsedSession.panelistId) {
+        socket.emit('join-room', {
+          roomCode: parsedSession.roomCode,
+          panelistId: parsedSession.panelistId,
+          panelistName: parsedSession.name
+        });
+      }
     });
 
     socket.on('disconnect', () => {
@@ -68,10 +77,10 @@ export default function PanelistDashboard() {
 
     const parsedSession = JSON.parse(storedSession);
     const socket = getSocket();
-    socket.emit('join-room', { 
-      roomCode: code, 
-      panelistName: parsedSession.name,
-      sessionId: parsedSession.sessionId 
+    socket.emit('join-room', {
+      roomCode: parsedSession.roomCode || code,
+      panelistId: parsedSession.panelistId,
+      panelistName: parsedSession.name
     });
   };
 
@@ -87,13 +96,6 @@ export default function PanelistDashboard() {
 
   return (
     <div className="min-h-screen bg-[#9C27B0] p-4">
-      {!room && (
-        <RoomJoiner
-          onRoomJoined={handleRoomJoined}
-          panelistName={session?.name || 'Panelist'}
-        />
-      )}
-
       {room && (
         <>
           <StageTransition stage={room.currentStage} />
@@ -108,12 +110,20 @@ function deserializeRoom(roomState: any): Room {
   return {
     ...roomState,
     votes: {
-      firstImpression: new Map(roomState.votes.firstImpression),
-      design: new Map(roomState.votes.design),
-      clarity: new Map(roomState.votes.clarity),
-      value: new Map(roomState.votes.value),
-      potential: new Map(roomState.votes.potential),
-      stageGuess: new Map(roomState.votes.stageGuess),
+      firstImpression: new Map(roomState.votes?.firstImpression || []),
+      design: new Map(roomState.votes?.design || []),
+      clarity: new Map(roomState.votes?.clarity || []),
+      value: new Map(roomState.votes?.value || []),
+      potential: new Map(roomState.votes?.potential || []),
+      stageGuess: new Map(roomState.votes?.stageGuess || []),
+    },
+    revealed: roomState.revealed || {
+      firstImpression: false,
+      design: false,
+      clarity: false,
+      value: false,
+      potential: false,
+      stageGuess: false,
     },
   };
 }

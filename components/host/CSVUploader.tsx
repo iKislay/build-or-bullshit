@@ -27,17 +27,33 @@ export default function CSVUploader({ onCSVUploaded }: CSVUploaderProps) {
       skipEmptyLines: true,
       complete: (results) => {
         try {
-          const projects: Project[] = results.data.map((row, index) => ({
-            id: `project-${index}`,
-            submissionId: row["Submission ID"] || '',
-            submittedAt: row["Submitted At"] || '',
-            url: row["Your project link"] || '',
-            description: row["What does your project do? (In short)"] || '',
-            stage: row["At what stage your product is?"] || '',
-            launched: row["Have you launched on forg.to?"] || '',
-            struggling: row["One thing you're struggling with"] || '',
-            credentials: row["Dummy credentials"] || '',
-          }));
+          // DEBUG: log headers and first raw row to diagnose URL parsing
+          console.log('[CSV] Detected headers:', results.meta.fields);
+          console.log('[CSV] First raw row:', results.data[0]);
+
+          const projects: Project[] = results.data.map((row, index) => {
+            const keys = Object.keys(row);
+            const getVal = (exact: string, keywords: string[]) => {
+              const record = row as Record<string, string>;
+              if (record[exact]) return record[exact];
+              const match = keys.find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+              return match ? record[match] : '';
+            };
+
+            return {
+              id: `project-${index}`,
+              submissionId: row["Submission ID"] || '',
+              submittedAt: row["Submitted At"] || '',
+              url: getVal("Your project link", ["link", "url", "website"]),
+              description: getVal("What does your project do? (In short)", ["description", "what does", "about"]),
+              stage: row["At what stage your product is?"] || '',
+              launched: row["Have you launched on forg.to?"] || '',
+              struggling: row["One thing you're struggling with"] || '',
+              credentials: row["Dummy credentials"] || '',
+            };
+          });
+
+          console.log('[CSV] First parsed project:', projects[0]);
 
           const shuffledProjects = shuffle(projects);
           onCSVUploaded(shuffledProjects);

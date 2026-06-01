@@ -25,7 +25,7 @@ export interface Project {
 }
 
 export interface Panelist {
-  id: string;
+  panelistId: string;
   name: string;
   socketId: string;
   score: number;

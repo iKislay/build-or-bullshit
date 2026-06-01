@@ -25,13 +25,14 @@ export default function ProjectDisplay({ project, stage, isHost = false }: Proje
             <p className="text-xl font-black uppercase mb-4 text-[#E91E63]">
               Guess What It Does!
             </p>
+            <p className="text-lg font-black uppercase mb-2 text-left">URL:</p>
             <a
               href={project.url}
               target="_blank"
               rel="noopener noreferrer"
               className="text-4xl font-black break-all hover:underline"
             >
-              {project.url}
+              {project.url || 'No URL provided'}
             </a>
           </div>
         )}
@@ -46,7 +47,7 @@ export default function ProjectDisplay({ project, stage, isHost = false }: Proje
                 rel="noopener noreferrer"
                 className="text-2xl font-bold break-all hover:underline"
               >
-                {project.url}
+                {project.url || 'No URL provided'}
               </a>
             </div>
 
@@ -66,7 +67,7 @@ export default function ProjectDisplay({ project, stage, isHost = false }: Proje
               rel="noopener noreferrer"
               className="text-xl font-bold break-all hover:underline"
             >
-              {project.url}
+              {project.url || 'No URL provided'}
             </a>
           </div>
         )}

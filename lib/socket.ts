@@ -7,6 +7,9 @@ export function getSocket(): Socket {
     socket = io({
       path: '/socket.io',
       transports: ['websocket', 'polling'],
+      extraHeaders: {
+        'ngrok-skip-browser-warning': 'true',
+      },
     });
   }
   return socket;

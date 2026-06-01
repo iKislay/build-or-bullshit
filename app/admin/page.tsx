@@ -7,9 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export default function PanelistLoginForm() {
-  const [roomCode, setRoomCode] = useState('');
-  const [panelistCode, setPanelistCode] = useState('');
+export default function AdminLoginPage() {
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -20,13 +19,13 @@ export default function PanelistLoginForm() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/panelist', {
+      const response = await fetch('/api/auth/host', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
-        body: JSON.stringify({ roomCode, panelistCode }),
+        body: JSON.stringify({ password }),
       });
 
       const data = await response.json();
@@ -34,9 +33,9 @@ export default function PanelistLoginForm() {
       if (response.ok) {
         setSession(data);
         sessionStorage.setItem('session', JSON.stringify(data));
-        router.push('/panel');
+        router.push('/admin/dashboard');
       } else {
-        setError(data.error || 'Invalid credentials');
+        setError(data.error || 'Invalid password');
       }
     } catch (err) {
       setError('Connection error. Please try again.');
@@ -46,44 +45,28 @@ export default function PanelistLoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FFEB3B] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#E91E63] p-4">
       <div className="neo-card bg-white max-w-md w-full">
         <h1 className="text-6xl font-black uppercase mb-2 text-center">
-          Build or Bullsh*t
+          Admin Login
         </h1>
         <p className="text-xl font-bold text-center mb-8">
-          Panelist Login
+          Host Access Only
         </p>
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="roomCode" className="text-lg font-black uppercase mb-2 block">
-              Room Code
+            <Label htmlFor="password" className="text-lg font-black uppercase mb-2 block">
+              Host Password
             </Label>
             <Input
-              id="roomCode"
-              type="text"
-              value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-              className="neo-input w-full uppercase"
-              placeholder="ABCD123"
-              maxLength={10}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="panelistCode" className="text-lg font-black uppercase mb-2 block">
-              Your Code
-            </Label>
-            <Input
-              id="panelistCode"
-              type="text"
-              value={panelistCode}
-              onChange={(e) => setPanelistCode(e.target.value.toUpperCase())}
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              className="neo-input w-full uppercase"
-              placeholder="ABC123"
-              maxLength={10}
+              className="neo-input w-full"
+              placeholder="Enter host password"
             />
           </div>
 
@@ -95,19 +78,19 @@ export default function PanelistLoginForm() {
 
           <Button
             onClick={handleLogin}
-            disabled={!roomCode.trim() || !panelistCode.trim() || loading}
-            className="neo-button bg-[#00BCD4] hover:bg-[#00BCD4] w-full disabled:opacity-50"
+            disabled={!password.trim() || loading}
+            className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full disabled:opacity-50"
           >
-            {loading ? 'Logging in...' : 'Join Show'}
+            {loading ? 'Logging in...' : 'Enter Admin'}
           </Button>
 
           <div className="text-center pt-4 border-t-4 border-black">
-            <p className="text-sm font-bold mb-2">Are you the host?</p>
+            <p className="text-sm font-bold mb-2">Are you a panelist?</p>
             <Button
-              onClick={() => router.push('/admin')}
-              className="neo-button bg-[#E91E63] hover:bg-[#E91E63] w-full text-sm py-2"
+              onClick={() => router.push('/')}
+              className="neo-button bg-[#00BCD4] hover:bg-[#00BCD4] w-full text-sm py-2"
             >
-              Go to Admin
+              Go to Panelist Login
             </Button>
           </div>
         </div>

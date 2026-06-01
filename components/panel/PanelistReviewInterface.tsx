@@ -6,17 +6,16 @@ import { getSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import ProjectDisplay from '@/components/shared/ProjectDisplay';
 import Scoreboard from '@/components/shared/Scoreboard';
-import { calculateAverage, normalizeStage } from '@/lib/utils';
+import AnimatedScoreReveal from '@/components/shared/AnimatedScoreReveal';
+import VotingProgress from '@/components/shared/VotingProgress';
+import { normalizeStage } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 export default function PanelistReviewInterface() {
   const room = useRoomStore((state) => state.room);
-  const [firstImpression, setFirstImpression] = useState('');
-  const [design, setDesign] = useState('');
-  const [clarity, setClarity] = useState('');
-  const [value, setValue] = useState('');
-  const [potential, setPotential] = useState('');
+  const setRoom = useRoomStore((state) => state.setRoom);
+  const router = useRouter();
   const [stageGuess, setStageGuess] = useState('');
 
   if (!room || room.currentProjectIndex < 0 || room.currentProjectIndex >= room.projects.length) {
@@ -33,55 +32,19 @@ export default function PanelistReviewInterface() {
 
   const currentProject = room.projects[room.currentProjectIndex];
   const socket = getSocket();
-  const socketId = socket.id;
+  const panelistId = typeof window !== 'undefined'
+    ? JSON.parse(sessionStorage.getItem('session') || '{}').panelistId
+    : '';
 
   const hasVoted = (category: 'firstImpression' | 'design' | 'clarity' | 'value' | 'potential' | 'stageGuess') => {
-    return room.votes[category].has(socketId || '');
+    return room.votes[category].has(panelistId);
   };
 
   const handleSubmitVote = (category: string, value: number | string) => {
     socket.emit('submit-vote', { roomCode: room.code, category, value });
   };
 
-  const handleFirstImpressionSubmit = () => {
-    const score = parseInt(firstImpression);
-    if (score >= 1 && score <= 10) {
-      handleSubmitVote('firstImpression', score);
-      setFirstImpression('');
-    }
-  };
 
-  const handleDesignSubmit = () => {
-    const score = parseInt(design);
-    if (score >= 1 && score <= 10) {
-      handleSubmitVote('design', score);
-      setDesign('');
-    }
-  };
-
-  const handleClaritySubmit = () => {
-    const score = parseInt(clarity);
-    if (score >= 1 && score <= 10) {
-      handleSubmitVote('clarity', score);
-      setClarity('');
-    }
-  };
-
-  const handleValueSubmit = () => {
-    const score = parseInt(value);
-    if (score >= 1 && score <= 10) {
-      handleSubmitVote('value', score);
-      setValue('');
-    }
-  };
-
-  const handlePotentialSubmit = () => {
-    const score = parseInt(potential);
-    if (score >= 1 && score <= 10) {
-      handleSubmitVote('potential', score);
-      setPotential('');
-    }
-  };
 
   const handleStageGuessSubmit = (guess: string) => {
     handleSubmitVote('stageGuess', guess);
@@ -97,35 +60,51 @@ export default function PanelistReviewInterface() {
     'Everything. Please send help 🚨',
   ];
 
+  const handleExitRoom = () => {
+    if (confirm('Are you sure you want to exit the room?')) {
+      sessionStorage.removeItem('panelistRoomCode');
+      setRoom(null);
+      router.push('/');
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="neo-card bg-white text-center">
+      <div className="neo-card bg-white text-center relative">
+        <Button
+          onClick={handleExitRoom}
+          className="neo-button bg-black hover:bg-black text-white absolute top-4 right-4 text-sm px-4 py-2"
+        >
+          Exit Room
+        </Button>
         <h1 className="text-5xl font-black uppercase mb-2">Build or Bullsh*t</h1>
         <p className="text-xl font-bold">
           Project {room.currentProjectIndex + 1} of {room.projects.length}
         </p>
       </div>
 
-      <ProjectDisplay project={currentProject} stage={room.currentStage} />
-
-      {room.currentStage === 'guess' && (
-        <div className="neo-card bg-[#FFEB3B] text-center">
-          <h3 className="text-3xl font-black uppercase mb-2">Guess What It Does!</h3>
-          <p className="text-xl font-bold">Discuss with the host</p>
+      {room.currentStage === 'guess' ? (
+        <div className="neo-card bg-white text-center">
+          <p className="text-2xl font-black uppercase mb-4 text-[#E91E63]">
+            Guess what this project is about
+          </p>
+          <span className="text-4xl font-black break-all">
+            {currentProject.url || 'No URL provided'}
+          </span>
         </div>
-      )}
-
-      {room.currentStage === 'reveal' && (
-        <div className="neo-card bg-[#4CAF50] text-center">
-          <h3 className="text-3xl font-black uppercase mb-2">Description Revealed!</h3>
-          <p className="text-xl font-bold">Host will award points for correct guesses</p>
-        </div>
-      )}
-
-      {room.currentStage === 'open' && (
-        <div className="neo-card bg-[#9C27B0] text-center">
-          <h3 className="text-3xl font-black uppercase mb-2">Opening Website...</h3>
-          <p className="text-xl font-bold">Get ready to vote!</p>
+      ) : (
+        <div className="neo-card bg-white text-center space-y-4">
+          <a
+            href={currentProject.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-4xl font-black break-all hover:underline block text-[#E91E63]"
+          >
+            {currentProject.url || 'No URL provided'}
+          </a>
+          <p className="text-2xl font-bold text-black">
+            {currentProject.description}
+          </p>
         </div>
       )}
 
@@ -137,56 +116,29 @@ export default function PanelistReviewInterface() {
 
           {!hasVoted('firstImpression') ? (
             <div className="space-y-4">
-              <div>
-                <Label className="text-xl font-black uppercase mb-2 block">
-                  Rate 1-10
-                </Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={firstImpression}
-                  onChange={(e) => setFirstImpression(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleFirstImpressionSubmit()}
-                  className="neo-input w-full text-center text-3xl"
-                  placeholder="1-10"
-                />
+              <Label className="text-2xl font-black uppercase mb-4 block text-center">
+                Select Score (1-10)
+              </Label>
+              <div className="grid grid-cols-5 gap-3">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                  <Button
+                    key={num}
+                    onClick={() => handleSubmitVote('firstImpression', num)}
+                    className="neo-button bg-white hover:bg-gray-200 text-black text-2xl font-black py-8"
+                  >
+                    {num}
+                  </Button>
+                ))}
               </div>
-              <Button
-                onClick={handleFirstImpressionSubmit}
-                disabled={!firstImpression || parseInt(firstImpression) < 1 || parseInt(firstImpression) > 10}
-                className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full"
-              >
-                Submit Vote
-              </Button>
             </div>
           ) : (
             <div className="border-4 border-black bg-white p-6 text-center">
-              <p className="text-2xl font-black">Vote Submitted!</p>
-              <p className="text-xl font-bold mt-2">Waiting for others...</p>
+              <p className="text-2xl font-black mb-4">Vote Submitted!</p>
+              {!room.revealed.firstImpression && (
+                <VotingProgress panelists={room.panelists} votedIds={room.votes.firstImpression} label="Waiting for others..." />
+              )}
               {room.revealed.firstImpression && (
-                <div className="mt-4 pt-4 border-t-4 border-black">
-                  <p className="text-lg font-black uppercase mb-2">Results:</p>
-                  <div className="space-y-2">
-                    {Array.from(room.votes.firstImpression.entries()).map(([id, score]) => {
-                      const panelist = room.panelists.find(p => p.id === id);
-                      return (
-                        <div key={id} className="flex justify-between">
-                          <span className="font-bold">{panelist?.name || 'Unknown'}:</span>
-                          <span className="font-black">{score}</span>
-                        </div>
-                      );
-                    })}
-                    <div className="border-t-4 border-black pt-2 mt-2">
-                      <div className="flex justify-between text-xl">
-                        <span className="font-black">Average:</span>
-                        <span className="font-black">
-                          {calculateAverage(Array.from(room.votes.firstImpression.values()))}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <AnimatedScoreReveal votes={room.votes.firstImpression} panelists={room.panelists} title="Results" />
               )}
             </div>
           )}
@@ -201,31 +153,26 @@ export default function PanelistReviewInterface() {
             </h3>
             {!hasVoted('design') ? (
               <div className="space-y-4">
-                <Input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={design}
-                  onChange={(e) => setDesign(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleDesignSubmit()}
-                  className="neo-input w-full text-center text-3xl"
-                  placeholder="1-10"
-                />
-                <Button
-                  onClick={handleDesignSubmit}
-                  disabled={!design || parseInt(design) < 1 || parseInt(design) > 10}
-                  className="neo-button bg-[#E91E63] hover:bg-[#E91E63] w-full"
-                >
-                  Submit Design Score
-                </Button>
+                <div className="grid grid-cols-5 gap-3">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                    <Button
+                      key={num}
+                      onClick={() => handleSubmitVote('design', num)}
+                      className="neo-button bg-white hover:bg-gray-200 text-black text-2xl font-black py-6"
+                    >
+                      {num}
+                    </Button>
+                  ))}
+                </div>
               </div>
             ) : (
-              <div className="border-4 border-black bg-white p-4 text-center">
-                <p className="text-xl font-black">Design Vote Submitted!</p>
+              <div className="border-4 border-black bg-white p-4">
+                <p className="text-xl font-black text-center mb-4">Design Vote Submitted!</p>
+                {!room.revealed.design && (
+                  <VotingProgress panelists={room.panelists} votedIds={room.votes.design} label="Waiting for others..." />
+                )}
                 {room.revealed.design && (
-                  <div className="mt-4 pt-4 border-t-4 border-black">
-                    <p className="font-black mb-2">Average: {calculateAverage(Array.from(room.votes.design.values()))}</p>
-                  </div>
+                  <AnimatedScoreReveal votes={room.votes.design} panelists={room.panelists} />
                 )}
               </div>
             )}
@@ -237,31 +184,26 @@ export default function PanelistReviewInterface() {
             </h3>
             {!hasVoted('clarity') ? (
               <div className="space-y-4">
-                <Input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={clarity}
-                  onChange={(e) => setClarity(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleClaritySubmit()}
-                  className="neo-input w-full text-center text-3xl"
-                  placeholder="1-10"
-                />
-                <Button
-                  onClick={handleClaritySubmit}
-                  disabled={!clarity || parseInt(clarity) < 1 || parseInt(clarity) > 10}
-                  className="neo-button bg-[#9C27B0] hover:bg-[#9C27B0] w-full"
-                >
-                  Submit Clarity Score
-                </Button>
+                <div className="grid grid-cols-5 gap-3">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                    <Button
+                      key={num}
+                      onClick={() => handleSubmitVote('clarity', num)}
+                      className="neo-button bg-white hover:bg-gray-200 text-black text-2xl font-black py-6"
+                    >
+                      {num}
+                    </Button>
+                  ))}
+                </div>
               </div>
             ) : (
-              <div className="border-4 border-black bg-white p-4 text-center">
-                <p className="text-xl font-black">Clarity Vote Submitted!</p>
+              <div className="border-4 border-black bg-white p-4">
+                <p className="text-xl font-black text-center mb-4">Clarity Vote Submitted!</p>
+                {!room.revealed.clarity && (
+                  <VotingProgress panelists={room.panelists} votedIds={room.votes.clarity} label="Waiting for others..." />
+                )}
                 {room.revealed.clarity && (
-                  <div className="mt-4 pt-4 border-t-4 border-black">
-                    <p className="font-black mb-2">Average: {calculateAverage(Array.from(room.votes.clarity.values()))}</p>
-                  </div>
+                  <AnimatedScoreReveal votes={room.votes.clarity} panelists={room.panelists} />
                 )}
               </div>
             )}
@@ -273,31 +215,26 @@ export default function PanelistReviewInterface() {
             </h3>
             {!hasVoted('value') ? (
               <div className="space-y-4">
-                <Input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleValueSubmit()}
-                  className="neo-input w-full text-center text-3xl"
-                  placeholder="1-10"
-                />
-                <Button
-                  onClick={handleValueSubmit}
-                  disabled={!value || parseInt(value) < 1 || parseInt(value) > 10}
-                  className="neo-button bg-[#FF9800] hover:bg-[#FF9800] w-full"
-                >
-                  Submit Value Score
-                </Button>
+                <div className="grid grid-cols-5 gap-3">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                    <Button
+                      key={num}
+                      onClick={() => handleSubmitVote('value', num)}
+                      className="neo-button bg-white hover:bg-gray-200 text-black text-2xl font-black py-6"
+                    >
+                      {num}
+                    </Button>
+                  ))}
+                </div>
               </div>
             ) : (
-              <div className="border-4 border-black bg-white p-4 text-center">
-                <p className="text-xl font-black">Value Vote Submitted!</p>
+              <div className="border-4 border-black bg-white p-4">
+                <p className="text-xl font-black text-center mb-4">Value Vote Submitted!</p>
+                {!room.revealed.value && (
+                  <VotingProgress panelists={room.panelists} votedIds={room.votes.value} label="Waiting for others..." />
+                )}
                 {room.revealed.value && (
-                  <div className="mt-4 pt-4 border-t-4 border-black">
-                    <p className="font-black mb-2">Average: {calculateAverage(Array.from(room.votes.value.values()))}</p>
-                  </div>
+                  <AnimatedScoreReveal votes={room.votes.value} panelists={room.panelists} />
                 )}
               </div>
             )}
@@ -312,34 +249,26 @@ export default function PanelistReviewInterface() {
           </h3>
           {!hasVoted('potential') ? (
             <div className="space-y-4">
-              <Input
-                type="number"
-                min="1"
-                max="10"
-                value={potential}
-                onChange={(e) => setPotential(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handlePotentialSubmit()}
-                className="neo-input w-full text-center text-3xl"
-                placeholder="1-10"
-              />
-              <Button
-                onClick={handlePotentialSubmit}
-                disabled={!potential || parseInt(potential) < 1 || parseInt(potential) > 10}
-                className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full"
-              >
-                Submit Potential Score
-              </Button>
+              <div className="grid grid-cols-5 gap-3">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                  <Button
+                    key={num}
+                    onClick={() => handleSubmitVote('potential', num)}
+                    className="neo-button bg-white hover:bg-gray-200 text-black text-2xl font-black py-6"
+                  >
+                    {num}
+                  </Button>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="border-4 border-black bg-white p-6 text-center">
-              <p className="text-2xl font-black">Vote Submitted!</p>
+              <p className="text-2xl font-black mb-4">Vote Submitted!</p>
+              {!room.revealed.potential && (
+                <VotingProgress panelists={room.panelists} votedIds={room.votes.potential} label="Waiting for others..." />
+              )}
               {room.revealed.potential && (
-                <div className="mt-4 pt-4 border-t-4 border-black">
-                  <p className="text-lg font-black uppercase mb-2">Results:</p>
-                  <p className="text-xl font-black">
-                    Average: {calculateAverage(Array.from(room.votes.potential.values()))}
-                  </p>
-                </div>
+                <AnimatedScoreReveal votes={room.votes.potential} panelists={room.panelists} title="Results" />
               )}
             </div>
           )}
@@ -363,38 +292,61 @@ export default function PanelistReviewInterface() {
                 </Button>
               ))}
             </div>
-          ) : (
-            <div className="border-4 border-black bg-white p-6">
-              <p className="text-2xl font-black text-center mb-4">Vote Submitted!</p>
-              <p className="text-lg font-bold text-center">Your guess: {stageGuess}</p>
-              {room.revealed.stageGuess && (
-                <div className="mt-4 pt-4 border-t-4 border-black">
-                  <p className="text-lg font-black uppercase mb-2 text-center">Correct Answer:</p>
-                  <p className="text-xl font-bold text-center bg-[#4CAF50] border-4 border-black p-4">
-                    {currentProject.stage}
-                  </p>
-                  <div className="mt-4">
-                    <p className="font-black mb-2">All Guesses:</p>
-                    {Array.from(room.votes.stageGuess.entries()).map(([id, guess]) => {
-                      const panelist = room.panelists.find(p => p.id === id);
-                      const isCorrect = normalizeStage(guess) === normalizeStage(currentProject.stage);
-                      return (
-                        <div key={id} className={`p-2 border-2 border-black mb-2 ${isCorrect ? 'bg-[#4CAF50]' : 'bg-white'}`}>
-                          <span className="font-bold">{panelist?.name}: </span>
-                          <span className="font-bold">{guess}</span>
-                          {isCorrect && <span className="font-black ml-2">✓ +25 pts</span>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          ) : (() => {
+            const revealed = room.revealed.stageGuess;
+            const correctStageRaw = currentProject.stage;
+            const correctStage = stageOptions.find(opt => normalizeStage(opt) === normalizeStage(correctStageRaw)) || correctStageRaw;
+            const votesArr: [string, string][] = Array.isArray(room.votes.stageGuess)
+              ? (room.votes.stageGuess as [string, string][])
+              : Array.from((room.votes.stageGuess as Map<string, string>).entries());
+
+            return (
+              <div className="space-y-3">
+                {!revealed ? (
+                  <>
+                    <div className="border-4 border-black bg-white p-3 text-center">
+                      <p className="text-sm font-black uppercase opacity-60 mb-1">Your Guess</p>
+                      <p className="text-lg font-black">{stageGuess}</p>
+                    </div>
+                    <VotingProgress panelists={room.panelists} votedIds={room.votes.stageGuess} label="Waiting for others..." />
+                  </>
+                ) : (
+                  <>
+                    {/* Correct answer pinned at top */}
+                    <div className="border-4 border-black bg-[#4CAF50] p-4 text-center">
+                      <p className="text-xs font-black uppercase text-white opacity-80 mb-1">✓ Correct Answer</p>
+                      <p className="text-2xl font-black text-white">{correctStage}</p>
+                    </div>
+
+                    {/* All panelists' guesses */}
+                    <div className="space-y-2">
+                      {room.panelists.map((panelist) => {
+                        const entry = votesArr.find(([id]) => id === panelist.panelistId);
+                        const guess = entry?.[1];
+                        const correct = guess && normalizeStage(guess) === normalizeStage(correctStageRaw);
+                        return (
+                          <div
+                            key={panelist.panelistId}
+                            className={`border-4 border-black p-3 flex items-center justify-between ${correct ? 'bg-[#4CAF50]' : 'bg-[#F44336]'}`}
+                          >
+                            <span className="font-black text-white text-base">{panelist.name}</span>
+                            <div className="text-right">
+                              <span className="font-bold text-white text-sm block">{guess || '—'}</span>
+                              <span className="text-white font-black">{correct ? '✓ +5 pts' : ''}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 
-      <Scoreboard />
+      <Scoreboard compact />
     </div>
   );
 }

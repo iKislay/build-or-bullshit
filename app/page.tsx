@@ -1,5 +1,5 @@
-import LoginForm from '@/components/auth/LoginForm';
+import PanelistLoginForm from '@/components/auth/LoginForm';
 
 export default function Home() {
-  return <LoginForm />;
+  return <PanelistLoginForm />;
 }

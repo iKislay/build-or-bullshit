@@ -5,9 +5,14 @@ import { getSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
 import ProjectDisplay from '@/components/shared/ProjectDisplay';
 import Scoreboard from '@/components/shared/Scoreboard';
+import AnimatedScoreReveal from '@/components/shared/AnimatedScoreReveal';
+import VotingProgress from '@/components/shared/VotingProgress';
+import { useRouter } from 'next/navigation';
 
 export default function ReviewInterface() {
   const room = useRoomStore((state) => state.room);
+  const setRoom = useRoomStore((state) => state.setRoom);
+  const router = useRouter();
 
   if (!room || room.currentProjectIndex < 0 || room.currentProjectIndex >= room.projects.length) {
     return (
@@ -37,11 +42,8 @@ export default function ReviewInterface() {
     socket.emit('award-points', { roomCode: room.code, panelistId, points: 5 });
   };
 
-  const handleAwardStageGuessPoints = () => {
-    socket.emit('award-stage-guess-points', { roomCode: room.code });
-  };
-
   const handleNextProject = () => {
+    window.open(`/tierboard?room=${room.code}`, 'tierboard');
     socket.emit('next-project', { roomCode: room.code });
   };
 
@@ -51,9 +53,22 @@ export default function ReviewInterface() {
     }
   };
 
+  const handleExitRoom = () => {
+    if (confirm('Are you sure you want to exit the room?')) {
+      setRoom(null);
+      router.push('/admin/dashboard');
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="neo-card bg-white text-center">
+      <div className="neo-card bg-white text-center relative">
+        <Button
+          onClick={handleExitRoom}
+          className="neo-button bg-black hover:bg-black text-white absolute top-4 right-4 text-sm px-4 py-2"
+        >
+          Exit Room
+        </Button>
         <h1 className="text-6xl font-black uppercase mb-2">Build or Bullsh*t</h1>
         <p className="text-2xl font-bold">
           Room: {room.code} | Project {room.currentProjectIndex + 1} of {room.projects.length}
@@ -86,8 +101,8 @@ export default function ReviewInterface() {
                     <div className="space-y-2">
                       {room.panelists.map((panelist) => (
                         <Button
-                          key={panelist.id}
-                          onClick={() => handleAwardPoints(panelist.id)}
+                          key={panelist.panelistId}
+                          onClick={() => handleAwardPoints(panelist.panelistId)}
                           className="neo-button bg-[#FFEB3B] hover:bg-[#FFEB3B] w-full text-base"
                         >
                           {panelist.name}
@@ -115,52 +130,54 @@ export default function ReviewInterface() {
 
               {room.currentStage === 'first-impression' && (
                 <>
-                  <div className="border-4 border-black bg-white p-4 text-center">
-                    <p className="font-black text-xl">Waiting for First Impression votes...</p>
-                    <p className="font-bold text-lg mt-2">
-                      {room.votes.firstImpression.size} / {room.panelists.length} voted
-                    </p>
-                  </div>
+                  {!room.revealed.firstImpression && (
+                    <div className="border-4 border-black bg-white p-4">
+                      <VotingProgress 
+                        panelists={room.panelists} 
+                        votedIds={room.votes.firstImpression} 
+                        label="Waiting for First Impression votes..." 
+                      />
+                    </div>
+                  )}
                   {room.revealed.firstImpression && (
-                    <Button
-                      onClick={handleNextStage}
-                      className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full"
-                    >
-                      Continue to Landing Page Review
-                    </Button>
+                    <>
+                      <AnimatedScoreReveal votes={room.votes.firstImpression} panelists={room.panelists} title="First Impression Results" />
+                      <Button
+                        onClick={handleNextStage}
+                        className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full mt-4"
+                      >
+                        Continue to Landing Page Review
+                      </Button>
+                    </>
                   )}
                 </>
               )}
 
               {room.currentStage === 'landing-review' && (
                 <>
-                  <div className="border-4 border-black bg-white p-4 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-black">Design:</span>
-                      <span className="font-bold">
-                        {room.votes.design.size} / {room.panelists.length}
-                        {room.revealed.design && ' ✓'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-black">Clarity:</span>
-                      <span className="font-bold">
-                        {room.votes.clarity.size} / {room.panelists.length}
-                        {room.revealed.clarity && ' ✓'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-black">Value:</span>
-                      <span className="font-bold">
-                        {room.votes.value.size} / {room.panelists.length}
-                        {room.revealed.value && ' ✓'}
-                      </span>
-                    </div>
+                  <div className="border-4 border-black bg-white p-4 space-y-4">
+                    {!room.revealed.design ? (
+                      <VotingProgress panelists={room.panelists} votedIds={room.votes.design} label="Design Votes" />
+                    ) : (
+                      <AnimatedScoreReveal votes={room.votes.design} panelists={room.panelists} title="Design Results" />
+                    )}
+
+                    {!room.revealed.clarity ? (
+                      <VotingProgress panelists={room.panelists} votedIds={room.votes.clarity} label="Clarity Votes" />
+                    ) : (
+                      <AnimatedScoreReveal votes={room.votes.clarity} panelists={room.panelists} title="Clarity Results" />
+                    )}
+
+                    {!room.revealed.value ? (
+                      <VotingProgress panelists={room.panelists} votedIds={room.votes.value} label="Value Votes" />
+                    ) : (
+                      <AnimatedScoreReveal votes={room.votes.value} panelists={room.panelists} title="Value Results" />
+                    )}
                   </div>
                   {room.revealed.design && room.revealed.clarity && room.revealed.value && (
                     <Button
                       onClick={handleNextStage}
-                      className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full"
+                      className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full mt-4"
                     >
                       Continue to Product Review
                     </Button>
@@ -170,42 +187,52 @@ export default function ReviewInterface() {
 
               {room.currentStage === 'product-review' && (
                 <>
-                  <div className="border-4 border-black bg-white p-4 text-center">
-                    <p className="font-black text-xl">Waiting for Potential votes...</p>
-                    <p className="font-bold text-lg mt-2">
-                      {room.votes.potential.size} / {room.panelists.length} voted
-                    </p>
-                  </div>
+                  {!room.revealed.potential && (
+                    <div className="border-4 border-black bg-white p-4">
+                      <VotingProgress 
+                        panelists={room.panelists} 
+                        votedIds={room.votes.potential} 
+                        label="Waiting for Potential votes..." 
+                      />
+                    </div>
+                  )}
                   {room.revealed.potential && (
-                    <Button
-                      onClick={handleNextStage}
-                      className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full"
-                    >
-                      Continue to Stage Guess
-                    </Button>
+                    <>
+                      <AnimatedScoreReveal votes={room.votes.potential} panelists={room.panelists} title="Potential Results" />
+                      <Button
+                        onClick={handleNextStage}
+                        className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full mt-4"
+                      >
+                        Continue to Stage Guess
+                      </Button>
+                    </>
                   )}
                 </>
               )}
 
               {room.currentStage === 'stage-guess' && (
                 <>
-                  <div className="border-4 border-black bg-white p-4 text-center">
-                    <p className="font-black text-xl">Waiting for stage guesses...</p>
-                    <p className="font-bold text-lg mt-2">
-                      {room.votes.stageGuess.size} / {room.panelists.length} voted
-                    </p>
-                  </div>
+                  {!room.revealed.stageGuess && (
+                    <div className="border-4 border-black bg-white p-4">
+                      <VotingProgress 
+                        panelists={room.panelists} 
+                        votedIds={room.votes.stageGuess} 
+                        label="Waiting for stage guesses..." 
+                      />
+                    </div>
+                  )}
                   {room.revealed.stageGuess && (
                     <>
-                      <Button
-                        onClick={handleAwardStageGuessPoints}
-                        className="neo-button bg-[#FFEB3B] hover:bg-[#FFEB3B] w-full"
-                      >
-                        Award Correct Answers (+25)
-                      </Button>
+                      <AnimatedScoreReveal 
+                        votes={room.votes.stageGuess} 
+                        panelists={room.panelists} 
+                        title="Stage Guess Results" 
+                        isStageGuess={true} 
+                        correctStage={currentProject.stage} 
+                      />
                       <Button
                         onClick={handleNextProject}
-                        className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full"
+                        className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full mt-4"
                       >
                         Next Project
                       </Button>

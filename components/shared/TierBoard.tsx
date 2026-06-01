@@ -1,16 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { getSocket } from '@/lib/socket';
 import { ReviewedProject, Project } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 
-export default function TierBoardDisplay() {
+function TierBoardDisplay() {
+  const searchParams = useSearchParams();
+  const roomCode = searchParams.get('room');
   const [reviewedProjects, setReviewedProjects] = useState<ReviewedProject[]>([]);
   const [unreviewedProjects, setUnreviewedProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     const socket = getSocket();
+
+    if (roomCode) {
+      socket.emit('spectate-room', { roomCode });
+    }
 
     socket.on('room-state', (roomState: any) => {
       setReviewedProjects(roomState.reviewedProjects || []);
@@ -27,116 +34,108 @@ export default function TierBoardDisplay() {
     return () => {
       socket.off('room-state');
     };
-  }, []);
+  }, [roomCode]);
 
-  const tierColors = {
-    S: '#FFEB3B',
-    A: '#4CAF50',
-    B: '#00BCD4',
-    C: '#FF9800',
-    D: '#E91E63',
-    F: '#F44336',
+  const getDomain = (url: string) => {
+    try {
+      return new URL(url).hostname.replace('www.', '');
+    } catch {
+      return url || 'Unknown URL';
+    }
   };
 
-  const projectsByTier = {
+  const tierColors: Record<string, string> = {
+    S: '#FF7F7F',
+    A: '#FFBF7F',
+    B: '#FFFF7F',
+    C: '#7FFF7F',
+    D: '#7FBFFF',
+    E: '#BF7FFF',
+    F: '#FF7FFF',
+  };
+
+  const tiers = ['S', 'A', 'B', 'C', 'D', 'E', 'F'] as const;
+
+  const projectsByTier: Record<string, ReviewedProject[]> = {
     S: reviewedProjects.filter((p) => p.tier === 'S'),
     A: reviewedProjects.filter((p) => p.tier === 'A'),
     B: reviewedProjects.filter((p) => p.tier === 'B'),
     C: reviewedProjects.filter((p) => p.tier === 'C'),
     D: reviewedProjects.filter((p) => p.tier === 'D'),
+    E: reviewedProjects.filter((p) => p.tier === 'E'),
     F: reviewedProjects.filter((p) => p.tier === 'F'),
   };
 
   return (
-    <div className="min-h-screen bg-white p-6">
-      <div className="neo-card bg-[#E91E63] mb-6">
-        <h1 className="text-7xl font-black uppercase text-center">
-          Tier Board
-        </h1>
-      </div>
+    <div className="min-h-screen bg-[#1a1a1a] p-8 text-white">
+      <h1 className="text-6xl font-black uppercase text-center mb-10 tracking-widest">
+        Tier Board
+      </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {(['S', 'A', 'B', 'C', 'D', 'F'] as const).map((tier) => (
-          <div key={tier} className="neo-card" style={{ backgroundColor: tierColors[tier] }}>
-            <div className="text-center mb-4">
-              <Badge className="text-5xl font-black px-6 py-3 bg-black text-white border-0">
-                {tier} TIER
-              </Badge>
-              <p className="text-2xl font-black mt-2">
-                {projectsByTier[tier].length} {projectsByTier[tier].length === 1 ? 'Project' : 'Projects'}
-              </p>
+      <div className="max-w-7xl mx-auto flex flex-col border-4 border-black bg-[#111]">
+        {tiers.map((tier) => (
+          <div key={tier} className="flex border-b-4 border-black min-h-[120px] last:border-b-0">
+            {/* Label Column */}
+            <div 
+              className="w-32 flex-shrink-0 flex items-center justify-center border-r-4 border-black text-black"
+              style={{ backgroundColor: tierColors[tier] }}
+            >
+              <span className="text-5xl font-black">{tier}</span>
             </div>
-
-            <div className="space-y-3">
+            
+            {/* Projects Content Column */}
+            <div className="flex-1 p-4 flex flex-wrap gap-4 content-start bg-[#1a1a1a]">
               {projectsByTier[tier].map((reviewed) => (
-                <div
+                <a
                   key={reviewed.project.id}
-                  className="border-4 border-black bg-white p-4"
+                  href={reviewed.project.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white text-black border-4 border-black p-3 font-black text-lg hover:bg-gray-200 transition-colors h-20 flex flex-col items-center justify-center min-w-[160px]"
                 >
-                  <a
-                    href={reviewed.project.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-black text-lg hover:underline block mb-2"
-                  >
-                    {new URL(reviewed.project.url).hostname.replace('www.', '')}
-                  </a>
-                  <p className="font-bold text-sm mb-2 line-clamp-2">
-                    {reviewed.project.description}
-                  </p>
-                  <div className="border-t-2 border-black pt-2 mt-2">
-                    <div className="flex justify-between text-sm font-bold">
-                      <span>Final Score:</span>
-                      <span className="font-black">{reviewed.averages.final.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
+                  <span>{getDomain(reviewed.project.url)}</span>
+                  <span className="text-xs font-bold mt-1 text-gray-500">Score: {reviewed.averages.final.toFixed(1)}</span>
+                </a>
               ))}
-
-              {projectsByTier[tier].length === 0 && (
-                <div className="border-4 border-black bg-white p-6 text-center">
-                  <p className="font-bold text-gray-400">No projects yet</p>
-                </div>
-              )}
             </div>
           </div>
         ))}
+      </div>
 
-        <div className="neo-card bg-[#9C27B0] md:col-span-2 lg:col-span-4">
-          <div className="text-center mb-4">
-            <Badge className="text-4xl font-black px-6 py-3 bg-black text-white border-0">
-              UNREVIEWED
-            </Badge>
-            <p className="text-2xl font-black mt-2">
-              {unreviewedProjects.length} {unreviewedProjects.length === 1 ? 'Project' : 'Projects'} Remaining
-            </p>
+      <div className="max-w-7xl mx-auto mt-10 flex flex-col border-4 border-black bg-[#111]">
+        <div className="flex min-h-[120px]">
+          <div className="w-32 flex-shrink-0 flex items-center justify-center border-r-4 border-black bg-gray-500 text-black">
+            <span className="text-xl font-black text-center leading-tight">UN-<br/>REVIEWED</span>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="flex-1 p-4 flex flex-wrap gap-4 content-start bg-[#1a1a1a]">
             {unreviewedProjects.map((project) => (
-              <div
+              <a
                 key={project.id}
-                className="border-4 border-black bg-white p-4"
+                href={project.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-gray-300 text-black border-4 border-black p-3 font-black text-lg hover:bg-white transition-colors h-20 flex items-center justify-center min-w-[160px]"
               >
-                <a
-                  href={project.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-black text-base hover:underline block"
-                >
-                  {new URL(project.url).hostname.replace('www.', '')}
-                </a>
-              </div>
+                {getDomain(project.url)}
+              </a>
             ))}
-
+            
             {unreviewedProjects.length === 0 && (
-              <div className="border-4 border-black bg-white p-6 text-center col-span-full">
-                <p className="font-bold text-gray-400">All projects reviewed!</p>
+              <div className="text-gray-500 font-bold italic p-2 flex items-center">
+                All projects have been reviewed!
               </div>
             )}
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TierBoardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#E91E63] flex items-center justify-center"><h1 className="text-4xl font-black text-white">Loading Tier Board...</h1></div>}>
+      <TierBoardDisplay />
+    </Suspense>
   );
 }
