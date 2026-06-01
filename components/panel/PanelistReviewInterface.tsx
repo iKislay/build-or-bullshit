@@ -191,6 +191,14 @@ export default function PanelistReviewInterface() {
           <p className="text-2xl font-bold">Check the Tier Board</p>
         </div>
         <Scoreboard />
+        <a
+          href={`/tierboard?room=${room?.code}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-2 left-2 text-[10px] opacity-30 hover:opacity-100 transition-opacity bg-black text-white px-2 py-1 rounded z-50"
+        >
+          Tier Board
+        </a>
       </div>
     );
   }
@@ -499,6 +507,14 @@ export default function PanelistReviewInterface() {
       )}
 
       <Scoreboard compact />
+      <a
+        href={`/tierboard?room=${room.code}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-2 left-2 text-[10px] opacity-30 hover:opacity-100 transition-opacity bg-black text-white px-2 py-1 rounded z-50"
+      >
+        Tier Board
+      </a>
     </div>
   );
 }

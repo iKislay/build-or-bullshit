@@ -24,12 +24,12 @@ export default function ReviewInterface() {
         </div>
         <Scoreboard />
         <a
-          href="https://tiermaker.com"
+          href={`/tierboard?room=${room?.code}`}
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-2 left-2 text-[10px] opacity-30 hover:opacity-100 transition-opacity bg-black text-white px-2 py-1 rounded z-50"
         >
-          Tiermaker
+          Tier Board
         </a>
       </div>
     );
@@ -324,12 +324,12 @@ export default function ReviewInterface() {
         </div>
       </div>
       <a
-        href="https://tiermaker.com"
+        href={`/tierboard?room=${room.code}`}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-2 left-2 text-[10px] opacity-30 hover:opacity-100 transition-opacity bg-black text-white px-2 py-1 rounded z-50"
       >
-        Tiermaker
+        Tier Board
       </a>
     </div>
   );
