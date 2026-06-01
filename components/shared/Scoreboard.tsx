@@ -2,9 +2,42 @@
 
 import { useRoomStore } from '@/lib/store';
 import { Badge } from '@/components/ui/badge';
+import { useEffect, useRef, useState } from 'react';
 
 export default function Scoreboard({ compact = false }: { compact?: boolean }) {
   const room = useRoomStore((state) => state.room);
+  const [highlightedPanelists, setHighlightedPanelists] = useState<Record<string, boolean>>({});
+  const prevScoresRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!room) return;
+
+    let changed = false;
+    const newHighlights = { ...highlightedPanelists };
+
+    room.panelists.forEach((panelist) => {
+      const currentScore = panelist.score;
+      const prevScore = prevScoresRef.current[panelist.panelistId];
+
+      if (prevScore !== undefined && currentScore > prevScore) {
+        newHighlights[panelist.panelistId] = true;
+        changed = true;
+        
+        setTimeout(() => {
+          setHighlightedPanelists((prev) => ({
+            ...prev,
+            [panelist.panelistId]: false,
+          }));
+        }, 1000);
+      }
+
+      prevScoresRef.current[panelist.panelistId] = currentScore;
+    });
+
+    if (changed) {
+      setHighlightedPanelists(newHighlights);
+    }
+  }, [room]);
 
   if (!room || room.panelists.length === 0) {
     return null;
@@ -16,8 +49,6 @@ export default function Scoreboard({ compact = false }: { compact?: boolean }) {
     const { currentStage, votes } = room;
     if (currentStage === 'first-impression') return votes.firstImpression.has(panelistId);
     if (currentStage === 'landing-review') {
-      // For landing review, show voted if they've voted for any of the 3 categories
-      // OR only show if they've voted for ALL? Let's say ANY for now.
       return votes.design.has(panelistId) || votes.clarity.has(panelistId) || votes.value.has(panelistId);
     }
     if (currentStage === 'product-review') return votes.potential.has(panelistId);
@@ -32,7 +63,10 @@ export default function Scoreboard({ compact = false }: { compact?: boolean }) {
         <div className="space-y-1">
           {sortedPanelists.map((panelist, index) => (
             <div key={panelist.panelistId} className="flex justify-between items-center text-xs">
-              <span className="font-bold truncate mr-3 max-w-[100px]" title={panelist.name}>
+              <span 
+                className={`font-bold truncate mr-3 max-w-[100px] ${highlightedPanelists[panelist.panelistId] ? 'animate-disco px-1 rounded' : ''}`} 
+                title={panelist.name}
+              >
                 {index + 1}. {panelist.name}
               </span>
               <span className="font-black whitespace-nowrap">{panelist.score}</span>
@@ -60,9 +94,11 @@ export default function Scoreboard({ compact = false }: { compact?: boolean }) {
                 #{index + 1}
               </Badge>
               <div className="flex flex-col">
-                <span className="text-2xl font-black">{panelist.name}</span>
+                <span className={`text-2xl font-black inline-block ${highlightedPanelists[panelist.panelistId] ? 'animate-disco px-2 rounded-sm' : ''}`}>
+                  {panelist.name}
+                </span>
                 {hasVoted(panelist.panelistId) && (
-                  <span className="text-xs font-black uppercase bg-[#4CAF50] text-white px-2 py-0.5 inline-block w-fit">
+                  <span className="text-xs font-black uppercase bg-[#4CAF50] text-white px-2 py-0.5 inline-block w-fit mt-1">
                     Voted ✓
                   </span>
                 )}

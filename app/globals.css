@@ -60,4 +60,16 @@
   .neo-input {
     @apply border-4 border-black px-4 py-3 text-lg font-bold focus:outline-none focus:ring-4 focus:ring-black;
   }
+
+  @keyframes disco-highlight {
+    0% { background-color: #ffb3b3; }
+    25% { background-color: #b3ffb3; }
+    50% { background-color: #ffffb3; }
+    75% { background-color: #d9b3ff; }
+    100% { background-color: #ffb3b3; }
+  }
+
+  .animate-disco {
+    animation: disco-highlight 0.2s linear infinite;
+  }
 }
