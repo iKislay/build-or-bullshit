@@ -125,7 +125,7 @@ export const useScoreStore = create<ScoreStore>((set) => ({
   updatePanelistScore: (panelistId, score) =>
     set((state) => ({
       panelists: state.panelists.map((p) =>
-        p.id === panelistId ? { ...p, score } : p
+        p.panelistId === panelistId ? { ...p, score } : p
       ),
     })),
 }));

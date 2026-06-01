@@ -10,7 +10,7 @@ export type Stage =
   | 'stage-guess'
   | 'completed';
 
-export type Tier = 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
+export type Tier = 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
 export interface Project {
   id: string;

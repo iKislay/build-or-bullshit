@@ -504,7 +504,7 @@ async function serializeRoomWithVotes(room: any) {
     stageGuess: [],
   };
 
-  let revealed = {
+  let revealed: Record<string, boolean> = {
     firstImpression: false,
     design: false,
     clarity: false,

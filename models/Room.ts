@@ -40,4 +40,4 @@ const RoomSchema = new Schema<IRoom>({
   timestamps: true
 });
 
-export default mongoose.models.Room || mongoose.model<IRoom>('Room', RoomSchema);
+export default (mongoose.models.Room as mongoose.Model<IRoom>) || mongoose.model<IRoom>('Room', RoomSchema);
