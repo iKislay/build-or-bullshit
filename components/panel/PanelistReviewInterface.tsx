@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRoomStore } from '@/lib/store';
 import { getSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
@@ -148,6 +148,19 @@ export default function PanelistReviewInterface() {
   const router = useRouter();
   const [stageGuess, setStageGuess] = useState('');
   const [struggleGuess, setStruggleGuess] = useState('');
+  const [popupData, setPopupData] = useState<{ show: boolean; text: string }>({ show: false, text: '' });
+
+  useEffect(() => {
+    if (room?.currentStage === 'first-impression') {
+      setPopupData({ show: true, text: 'First Impression Round' });
+      const timer = setTimeout(() => setPopupData({ show: false, text: '' }), 4000);
+      return () => clearTimeout(timer);
+    } else if (room?.currentStage === 'product-review') {
+      setPopupData({ show: true, text: 'Does this project have potential?' });
+      const timer = setTimeout(() => setPopupData({ show: false, text: '' }), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [room?.currentStage]);
 
   if (!room || room.currentProjectIndex < 0 || room.currentProjectIndex >= room.projects.length) {
     return (
@@ -212,6 +225,15 @@ export default function PanelistReviewInterface() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {popupData.show && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-md bg-black/40">
+          <div className="bg-[#FFEB3B] border-8 border-black p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] transform -rotate-3">
+            <h2 className="text-7xl font-black uppercase text-black text-center tracking-tighter">
+              {popupData.text}
+            </h2>
+          </div>
+        </div>
+      )}
       <style>{`
         @keyframes correctPulse {
           0%, 100% { background-color: #4CAF50; }
@@ -282,12 +304,11 @@ export default function PanelistReviewInterface() {
             </div>
           ) : (
             <div className="border-4 border-black bg-white p-6 text-center">
-              <p className="text-2xl font-black mb-4">Vote Submitted!</p>
               {!room.revealed.firstImpression && (
                 <VotingProgress panelists={room.panelists} votedIds={room.votes.firstImpression} label="Waiting for others..." />
               )}
               {room.revealed.firstImpression && (
-                <AnimatedScoreReveal votes={room.votes.firstImpression} panelists={room.panelists} title="Results" />
+                <AnimatedScoreReveal votes={room.votes.firstImpression} panelists={room.panelists} />
               )}
             </div>
           )}
@@ -316,7 +337,6 @@ export default function PanelistReviewInterface() {
               </div>
             ) : (
               <div className="border-4 border-black bg-white p-4">
-                <p className="text-xl font-black text-center mb-4">Design Vote Submitted!</p>
                 {!room.revealed.design && (
                   <VotingProgress panelists={room.panelists} votedIds={room.votes.design} label="Waiting for others..." />
                 )}
@@ -347,7 +367,6 @@ export default function PanelistReviewInterface() {
               </div>
             ) : (
               <div className="border-4 border-black bg-white p-4">
-                <p className="text-xl font-black text-center mb-4">Clarity Vote Submitted!</p>
                 {!room.revealed.clarity && (
                   <VotingProgress panelists={room.panelists} votedIds={room.votes.clarity} label="Waiting for others..." />
                 )}
@@ -378,7 +397,6 @@ export default function PanelistReviewInterface() {
               </div>
             ) : (
               <div className="border-4 border-black bg-white p-4">
-                <p className="text-xl font-black text-center mb-4">Value Vote Submitted!</p>
                 {!room.revealed.value && (
                   <VotingProgress panelists={room.panelists} votedIds={room.votes.value} label="Waiting for others..." />
                 )}
@@ -412,12 +430,11 @@ export default function PanelistReviewInterface() {
             </div>
           ) : (
             <div className="border-4 border-black bg-white p-6 text-center">
-              <p className="text-2xl font-black mb-4">Vote Submitted!</p>
               {!room.revealed.potential && (
                 <VotingProgress panelists={room.panelists} votedIds={room.votes.potential} label="Waiting for others..." />
               )}
               {room.revealed.potential && (
-                <AnimatedScoreReveal votes={room.votes.potential} panelists={room.panelists} title="Results" />
+                <AnimatedScoreReveal votes={room.votes.potential} panelists={room.panelists} />
               )}
             </div>
           )}
