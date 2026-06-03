@@ -36,10 +36,17 @@ export default function ProjectEditor({ roomCode, projects, onStart }: ProjectEd
     cancelEdit();
   };
 
+  const approveProject = (projectId: string) => {
+    socket.emit('approve-project', { roomCode, projectId });
+  };
+
   const deleteProject = (projectId: string, url: string) => {
     if (!confirm(`Delete project "${url || projectId}"?`)) return;
     socket.emit('delete-project', { roomCode, projectId });
   };
+
+  const approvedProjects = projects.filter(p => p.isApproved !== false);
+  const pendingDuplicates = projects.filter(p => p.isDuplicate && p.isApproved === false);
 
   return (
     <div className="neo-card bg-[#FFEB3B] max-w-4xl mx-auto">
@@ -50,18 +57,41 @@ export default function ProjectEditor({ roomCode, projects, onStart }: ProjectEd
         Edit any project details, then start the review.
       </p>
 
+      {pendingDuplicates.length > 0 && (
+        <div className="border-4 border-black bg-[#F44336] p-4 mb-6 text-white text-center font-black uppercase">
+          {pendingDuplicates.length} Duplicate {pendingDuplicates.length === 1 ? 'project' : 'projects'} found! They won't be added to the review unless you click "Add".
+        </div>
+      )}
+
       <div className="space-y-3 mb-6">
         {projects.map((project, idx) => {
           const isExpanded = expandedId === project.id;
+          const isUnapprovedDuplicate = project.isDuplicate && project.isApproved === false;
+
           return (
-            <div key={project.id} className="border-4 border-black bg-white">
+            <div key={project.id} className={`border-4 border-black ${isUnapprovedDuplicate ? 'bg-[#FFCDD2]' : 'bg-white'}`}>
               <div className="p-4 flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-gray-500">#{idx + 1}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-gray-500">#{idx + 1}</p>
+                    {project.isDuplicate && (
+                      <span className="bg-[#F44336] text-white text-[10px] font-black px-2 py-0.5 uppercase border-2 border-black">
+                        Duplicate
+                      </span>
+                    )}
+                  </div>
                   <p className="font-black text-lg truncate">{project.url || '(no URL)'}</p>
                   <p className="text-sm font-bold text-gray-700 truncate">{project.description || '(no description)'}</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
+                  {isUnapprovedDuplicate && (
+                    <Button
+                      onClick={() => approveProject(project.id)}
+                      className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] text-white text-sm px-3 py-2"
+                    >
+                      Add
+                    </Button>
+                  )}
                   {!isExpanded && (
                     <Button
                       onClick={() => beginEdit(project)}
@@ -153,10 +183,10 @@ export default function ProjectEditor({ roomCode, projects, onStart }: ProjectEd
 
       <Button
         onClick={onStart}
-        disabled={projects.length === 0}
+        disabled={approvedProjects.length === 0}
         className="neo-button bg-[#4CAF50] hover:bg-[#4CAF50] w-full text-2xl py-6 disabled:opacity-50"
       >
-        Start Review ({projects.length} {projects.length === 1 ? 'project' : 'projects'})
+        Start Review ({approvedProjects.length} {approvedProjects.length === 1 ? 'project' : 'projects'})
       </Button>
     </div>
   );

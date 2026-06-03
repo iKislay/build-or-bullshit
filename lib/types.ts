@@ -23,6 +23,8 @@ export interface Project {
   launched: string;
   struggling: string;
   credentials: string;
+  isDuplicate?: boolean;
+  isApproved?: boolean;
 }
 
 export interface Panelist {

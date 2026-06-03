@@ -121,13 +121,49 @@ export function initializeSocketServer(httpServer: HTTPServer) {
           return;
         }
 
-        room.projects = projects;
+        // Get all existing projects from all other rooms to check for duplicates
+        const allOtherRooms = await Room.find({ code: { $ne: roomCode } });
+        const existingUrls = new Set();
+        const normalizeUrl = (urlStr: string) => {
+          if (!urlStr) return '';
+          try {
+            // Remove protocol, www, and trailing slash
+            let normalized = urlStr.toLowerCase().trim();
+            normalized = normalized.replace(/^https?:\/\//, '');
+            normalized = normalized.replace(/^www\./, '');
+            normalized = normalized.replace(/\/$/, '');
+            return normalized;
+          } catch (e) {
+            return urlStr.toLowerCase().trim();
+          }
+        };
+
+        allOtherRooms.forEach(r => {
+          r.projects.forEach((p: any) => {
+            if (p.url) existingUrls.add(normalizeUrl(p.url));
+          });
+          r.reviewedProjects.forEach((rp: any) => {
+            if (rp.project?.url) existingUrls.add(normalizeUrl(rp.project.url));
+          });
+        });
+
+        const projectsWithDuplicateCheck = projects.map((p: any) => {
+          const normalized = normalizeUrl(p.url);
+          const isDuplicate = p.url ? existingUrls.has(normalized) : false;
+          return {
+            ...p,
+            isDuplicate,
+            isApproved: !isDuplicate // Auto-approve if not a duplicate
+          };
+        });
+
+        room.projects = projectsWithDuplicateCheck;
         room.currentProjectIndex = -1;
         room.currentStage = 'guess';
         await room.save();
 
         io.to(roomCode).emit('room-state', await serializeRoomWithVotes(room));
-        console.log(`CSV uploaded to room ${roomCode}: ${projects.length} projects (awaiting review start)`);
+        console.log(`CSV uploaded to room ${roomCode}: ${projects.length} projects (with duplicate check)`);
       } catch (error) {
         console.error('Upload CSV error:', error);
         socket.emit('error', { message: 'Failed to upload CSV' });
@@ -148,7 +184,7 @@ export function initializeSocketServer(httpServer: HTTPServer) {
           return;
         }
 
-        const allowed = ['url', 'description', 'stage', 'launched', 'struggling', 'credentials', 'submissionId', 'submittedAt'];
+        const allowed = ['url', 'description', 'stage', 'launched', 'struggling', 'credentials', 'submissionId', 'submittedAt', 'isApproved'];
         const sanitized: Record<string, any> = {};
         for (const key of allowed) {
           if (key in updates) sanitized[key] = updates[key];
@@ -190,6 +226,32 @@ export function initializeSocketServer(httpServer: HTTPServer) {
       }
     });
 
+    socket.on('approve-project', async ({ roomCode, projectId }) => {
+      try {
+        const room = await Room.findOne({ code: roomCode, isActive: true });
+        if (!room || room.hostSocketId !== socket.id) {
+          socket.emit('error', { message: 'Unauthorized or room not found' });
+          return;
+        }
+
+        const idx = room.projects.findIndex((p: any) => p.id === projectId);
+        if (idx === -1) {
+          socket.emit('error', { message: 'Project not found' });
+          return;
+        }
+
+        room.projects[idx].isApproved = true;
+        room.markModified('projects');
+        await room.save();
+
+        io.to(roomCode).emit('room-state', await serializeRoomWithVotes(room));
+        console.log(`Project ${projectId} approved in room ${roomCode}`);
+      } catch (error) {
+        console.error('Approve project error:', error);
+        socket.emit('error', { message: 'Failed to approve project' });
+      }
+    });
+
     socket.on('start-review', async ({ roomCode }) => {
       try {
         const room = await Room.findOne({ code: roomCode, isActive: true });
@@ -197,17 +259,21 @@ export function initializeSocketServer(httpServer: HTTPServer) {
           socket.emit('error', { message: 'Unauthorized or room not found' });
           return;
         }
-        if (!room.projects.length) {
-          socket.emit('error', { message: 'No projects to review' });
+
+        // Filter out unapproved projects
+        const approvedProjects = room.projects.filter((p: any) => p.isApproved !== false);
+        if (!approvedProjects.length) {
+          socket.emit('error', { message: 'No approved projects to review' });
           return;
         }
 
+        room.projects = approvedProjects;
         room.currentProjectIndex = 0;
         room.currentStage = 'guess';
         await room.save();
 
         io.to(roomCode).emit('room-state', await serializeRoomWithVotes(room));
-        console.log(`Review started in room ${roomCode}`);
+        console.log(`Review started in room ${roomCode} with ${approvedProjects.length} projects`);
       } catch (error) {
         console.error('Start review error:', error);
         socket.emit('error', { message: 'Failed to start review' });
